@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - "kids-edu-app/**"
+      - "!kids-edu-app/docs/**"
       - ".github/workflows/kids-edu-app-screenshots.yml"
       - ".github/scripts/kids-edu-app-capture.sh"
   workflow_dispatch:

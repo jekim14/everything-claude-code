@@ -1,14 +1,17 @@
 name: 쑥쑥 놀이터 Android 빌드
 
 on:
+  # 화면 캡처(docs/)만 바뀐 커밋은 빌드하지 않습니다.
   push:
     branches: [main]
     paths:
       - "kids-edu-app/**"
+      - "!kids-edu-app/docs/**"
       - ".github/workflows/kids-edu-app.yml"
   pull_request:
     paths:
       - "kids-edu-app/**"
+      - "!kids-edu-app/docs/**"
       - ".github/workflows/kids-edu-app.yml"
   workflow_dispatch:
 

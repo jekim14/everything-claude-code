@@ -165,14 +165,15 @@ fun StopGoGame(env: GameEnv) {
         background = Meadow,
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
+            val ruleHeight = min(maxHeight * 0.24f, 96.dp)
+            val cellW = min((maxWidth - 48.dp - 60.dp) / 3, 220.dp)
+            val cellH = min((maxHeight * 0.66f - 24.dp) / 2, 150.dp)
             Canvas(Modifier.fillMaxSize()) {
                 drawRect(Color(0xFFCDEBB0), topLeft = Offset(0f, size.height * 0.28f))
             }
             Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                RuleCard(reversed = reversed, height = min(maxHeight * 0.24f, 96.dp))
+                RuleCard(reversed = reversed, height = ruleHeight)
                 Spacer(Modifier.height(12.dp))
-                val cellW = min((maxWidth - 48.dp - 60.dp) / 3, 220.dp)
-                val cellH = min((maxHeight * 0.66f - 24.dp) / 2, 150.dp)
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     for (row in 0 until 2) {
                         Row(horizontalArrangement = Arrangement.spacedBy(30.dp)) {

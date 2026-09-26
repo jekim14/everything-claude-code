@@ -206,6 +206,8 @@ fun NumberPathGame(env: GameEnv) {
             val riverTop = maxHeight * 0.30f
             val riverHeight = maxHeight * 0.34f
             val stoneY = riverTop + riverHeight * 0.5f - stoneH * 0.5f
+            val dieSize = min(maxHeight * 0.28f, 120.dp)
+            val answerSize = min(maxHeight * 0.26f, 96.dp)
 
             Canvas(Modifier.fillMaxSize()) {
                 val top = riverTop.toPx()
@@ -279,7 +281,7 @@ fun NumberPathGame(env: GameEnv) {
                     .padding(start = 24.dp, bottom = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DieCard(value = die, canRoll = path.canRoll && !rolling && asking == null && !finished, size = min(maxHeight * 0.28f, 120.dp), onClick = ::roll)
+                DieCard(value = die, canRoll = path.canRoll && !rolling && asking == null && !finished, size = dieSize, onClick = ::roll)
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
@@ -312,7 +314,7 @@ fun NumberPathGame(env: GameEnv) {
                             shakeState = arrivalShakes[n],
                             onClick = { answer(n) },
                             contentDescription = "$n",
-                            modifier = Modifier.size(min(maxHeight * 0.26f, 96.dp)),
+                            modifier = Modifier.size(answerSize),
                         ) {
                             Text("$n", fontSize = 38.sp, color = KidsColors.Ink)
                         }

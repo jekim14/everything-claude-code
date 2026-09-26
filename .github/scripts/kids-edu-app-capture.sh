@@ -11,7 +11,7 @@ adb shell settings put secure immersive_mode_confirmations confirmed
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
-adb shell am instrument -w -r \
+timeout 900 adb shell am instrument -w -r \
   -e class "$PKG.ScreenshotTour" \
   "$PKG.test/androidx.test.runner.AndroidJUnitRunner" | tee instrument.log
 

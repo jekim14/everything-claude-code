@@ -1,6 +1,7 @@
 package com.ssukssuk.playground.logic
 
 import com.ssukssuk.playground.content.Emotion
+import com.ssukssuk.playground.content.EmotionContent
 import com.ssukssuk.playground.content.HangulContent
 import com.ssukssuk.playground.core.Difficulty
 import com.ssukssuk.playground.core.PatternKind
@@ -54,7 +55,7 @@ class QuizzesTest {
 
     @Test
     fun `pattern answer continues the repeating unit`() {
-        val kinds = Difficulty(5).patternKinds
+        val kinds = Difficulty(2).patternKinds
         for (seed in seeds) {
             val questions = PatternQuiz.generate(Random(seed), count = 5, kinds = kinds)
             assertEquals(PatternKind.AB, questions.first().kind)
@@ -70,24 +71,33 @@ class QuizzesTest {
     }
 
     @Test
-    fun `emotion choices match age`() {
+    fun `emotion choices follow the order children learn emotions`() {
         for (seed in seeds) {
-            val younger = EmotionQuiz.generate(Random(seed), count = 5, choiceCount = 3)
+            val younger = EmotionQuiz.generate(Random(seed), count = 5, choiceCount = 3, stage = 1)
             assertEquals(5, younger.size)
             assertEquals(5, younger.map { it.situation }.toSet().size)
             younger.forEach { q ->
-                assertTrue(Emotion.SCARED !in q.choices)
+                assertTrue(Emotion.SURPRISED !in q.choices)
                 assertTrue(q.situation.emotion in q.choices)
                 assertEquals(3, q.choices.toSet().size)
             }
-            val older = EmotionQuiz.generate(Random(seed), count = 5, choiceCount = 4)
+            // 1단계에서도 무서움은 나온다 (기쁨·슬픔·화남·무서움)
+            assertTrue(younger.map { it.situation.emotion }.toSet().size >= 4)
+            val older = EmotionQuiz.generate(Random(seed), count = 5, choiceCount = 4, stage = 2)
             older.forEach { q ->
                 assertTrue(q.situation.emotion in q.choices)
                 assertEquals(4, q.choices.toSet().size)
             }
             // 감정이 한 가지로 몰리지 않는다
             assertTrue(older.map { it.situation.emotion }.toSet().size >= 4)
+            val stretch = EmotionQuiz.generate(Random(seed), count = 5, choiceCount = 5, stage = 3)
+            stretch.forEach { q -> assertEquals(Emotion.entries.toSet(), q.choices.toSet()) }
         }
+    }
+
+    @Test
+    fun `plausible alternative emotions are never the main answer`() {
+        EmotionContent.situations.forEach { s -> assertTrue(s.emotion !in s.alsoOk) }
     }
 
     @Test

@@ -28,9 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.Sticker
 import com.ssukssuk.playground.content.Stickers
 import com.ssukssuk.playground.core.Sfx
@@ -49,18 +49,10 @@ fun StickerBookScreen(appState: AppState) {
     val collected = Stickers.all.count { (counts[it.id] ?: 0) > 0 }
     LaunchedEffect(Unit) {
         delay(500)
-        services.speaker.speak(
-            if (collected == 0) "놀이를 끝까지 하면 스티커를 받을 수 있어요!" else "스티커를 ${collected}개 모았어요! 눌러서 이름을 들어 봐요.",
-        )
+        services.speaker.speak(if (collected == 0) Lines.STICKER_BOOK_EMPTY else Lines.STICKER_BOOK_INTRO)
     }
-    GameScaffold(title = "내 스티커 책", color = Color(0xFFFFD54F), onHome = appState::goHome) {
+    GameScaffold(title = "내 스티커 책", color = Color(0xFF9A6300), onHome = appState::goHome) {
         Column(Modifier.fillMaxSize()) {
-            Text(
-                text = "모은 스티커 $collected / ${Stickers.all.size}",
-                fontSize = 20.sp,
-                color = KidsColors.InkSoft,
-                modifier = Modifier.padding(start = 20.dp, bottom = 4.dp),
-            )
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(92.dp),
                 contentPadding = PaddingValues(16.dp),
@@ -70,7 +62,7 @@ fun StickerBookScreen(appState: AppState) {
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 8.dp)
-                    .background(Color.White.copy(alpha = 0.6f), RoundedCornerShape(28.dp)),
+                    .background(Color.White.copy(alpha = 0.7f), RoundedCornerShape(28.dp)),
             ) {
                 items(Stickers.all, key = { it.id }) { sticker ->
                     StickerCell(sticker, counts[sticker.id] ?: 0)
@@ -106,7 +98,7 @@ private fun StickerCell(sticker: Sticker, count: Int) {
                         })
                     }
                 } else {
-                    services.speaker.speak("놀이를 하면 스티커를 받을 수 있어요!")
+                    services.speaker.speak(Lines.STICKER_LOCKED)
                 }
             }
             .semantics { contentDescription = if (owned) sticker.name else "아직 없는 스티커" },
@@ -114,20 +106,8 @@ private fun StickerCell(sticker: Sticker, count: Int) {
     ) {
         if (owned) {
             Text(sticker.emoji, fontSize = 44.sp)
-            if (count > 1) {
-                Text(
-                    text = "×$count",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .background(KidsColors.Accent, RoundedCornerShape(50))
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                )
-            }
         } else {
-            Text("?", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFBDBDBD))
+            Text("?", fontSize = 36.sp, color = Color(0xFFBDBDBD))
         }
     }
 }

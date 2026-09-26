@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
-import com.ssukssuk.playground.content.Korean
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.logic.CountingQuiz
 import com.ssukssuk.playground.ui.components.AnswerCard
@@ -49,6 +49,7 @@ import com.ssukssuk.playground.ui.components.PraisePop
 import com.ssukssuk.playground.ui.components.ShakeState
 import com.ssukssuk.playground.ui.components.bouncyClick
 import com.ssukssuk.playground.ui.theme.KidsColors
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -59,10 +60,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun CountingGame(env: GameEnv) {
     val difficulty = env.difficulty
-    val questions = remember { CountingQuiz.generate(env.random, difficulty.questionsPerRound, difficulty.countMax) }
+    val questions = remember {
+        CountingQuiz.generate(env.random, difficulty.questionsPerRound, difficulty.countMax, difficulty.countChoices)
+    }
     var index by remember { mutableIntStateOf(0) }
     var firstTry by remember { mutableIntStateOf(0) }
     var missed by remember { mutableStateOf(false) }
+    var misses by remember { mutableIntStateOf(0) }
+    var demoJob by remember { mutableStateOf<Job?>(null) }
     var solved by remember { mutableStateOf(false) }
     var disabled by remember { mutableStateOf(emptySet<Int>()) }
     var celebrate by remember { mutableIntStateOf(0) }
@@ -74,7 +79,7 @@ fun CountingGame(env: GameEnv) {
     val counted = remember(index) { mutableStateListOf<Int>() }
     val shakes = remember(index) { question.choices.associateWith { ShakeState() } }
 
-    fun prompt() = env.say("${Korean.iGa(item.name)} 몇 ${item.counter}일까요? 하나씩 눌러서 세어 봐요!")
+    fun prompt() = env.say(Lines.countingPrompt(item))
 
     LaunchedEffect(index) {
         delay(if (index == 0) 800 else 300)
@@ -84,15 +89,15 @@ fun CountingGame(env: GameEnv) {
     fun tapItem(i: Int) {
         if (solved) return
         if (i in counted) {
-            env.say(Korean.countWord(counted.indexOf(i) + 1))
+            env.say(Lines.count(counted.indexOf(i) + 1))
             return
         }
         counted.add(i)
         env.play(Sfx.TAP)
         if (counted.size == question.answer) {
-            env.say("${Korean.countWord(counted.size)}! 다 세었어요. 몇 ${item.counter}인지 숫자를 눌러 볼까요?")
+            env.say(Lines.countingAllCounted(counted.size, item))
         } else {
-            env.say(Korean.countWord(counted.size))
+            env.say(Lines.count(counted.size))
         }
     }
 
@@ -100,19 +105,23 @@ fun CountingGame(env: GameEnv) {
         if (solved || number in disabled) return
         if (number == question.answer) {
             solved = true
+            demoJob?.cancel()
             if (!missed) firstTry++
             env.play(Sfx.CORRECT)
             celebrate++
-            val word = env.praise()
-            praise = word
-            val amount = "${Korean.counterNumber(number)} ${item.counter}"
-            env.say("$word ${Korean.iGa(item.name)} ${Korean.ieyo(amount)}!")
+            val word = env.praise(afterMiss = missed)
+            praise = word.substringBefore(' ')
+            // 기수 원리: 하나씩 센 뒤 "모두 세 개!"로 마지막 수가 전체라는 것을 짚어 줍니다.
+            counted.clear()
+            counted.addAll(0 until question.answer)
+            env.say(Lines.countingCorrect(word, number, item))
             scope.launch {
                 delay(2600)
                 if (index + 1 < questions.size) {
                     index++
                     solved = false
                     missed = false
+                    misses = 0
                     disabled = emptySet()
                 } else {
                     env.complete(firstTry, questions.size)
@@ -120,11 +129,26 @@ fun CountingGame(env: GameEnv) {
             }
         } else {
             missed = true
+            misses++
             disabled = disabled + number
             counted.clear()
             env.play(Sfx.WRONG)
-            env.say("음~ 같이 다시 세어 볼까요? 하나씩 눌러 봐요!")
             scope.launch { shakes[number]?.shake() }
+            if (misses == 1) {
+                env.say(Lines.COUNTING_RETRY)
+            } else {
+                // 두 번째부터는 같이 세어 보여 줍니다(시범).
+                env.say(Lines.countingDemo(question.answer, item))
+                demoJob?.cancel()
+                demoJob = scope.launch {
+                    delay(900)
+                    for (i in 0 until question.answer) {
+                        if (solved) break
+                        if (i !in counted) counted.add(i)
+                        delay(620)
+                    }
+                }
+            }
         }
     }
 
@@ -186,6 +210,7 @@ fun CountingGame(env: GameEnv) {
                     val state = when {
                         solved && number == question.answer -> AnswerState.Correct
                         number in disabled || solved -> AnswerState.Dimmed
+                        misses >= 2 && number == question.answer -> AnswerState.Hint
                         else -> AnswerState.Normal
                     }
                     AnswerCard(

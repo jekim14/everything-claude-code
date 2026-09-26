@@ -6,19 +6,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import com.ssukssuk.playground.content.ShapeKind
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-
-/** 모양 맞추기에 나오는 도형 */
-enum class ShapeKind(val label: String) {
-    CIRCLE("동그라미"),
-    SQUARE("네모"),
-    TRIANGLE("세모"),
-    STAR("별"),
-    HEART("하트"),
-    DIAMOND("마름모"),
-}
 
 /** [size] 크기의 상자 안에 들어가는 도형 경로 */
 fun shapePath(kind: ShapeKind, size: Size, origin: Offset = Offset.Zero): Path {

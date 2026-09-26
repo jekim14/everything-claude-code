@@ -41,6 +41,23 @@ object Korean {
     /** 사과예요 / 별이에요 */
     fun ieyo(word: String) = word + if (hasBatchim(word)) "이에요" else "예요"
 
+    /** 이름 뒤에 조사를 붙일 때 쓰는 형태: 하늘이(는) / 민서(는) */
+    fun friendlyName(name: String) = name + if (hasBatchim(name)) "이" else ""
+
+    /** 부를 때: 하늘아 / 민서야 */
+    fun vocative(name: String) = name + if (hasBatchim(name)) "아" else "야"
+
+    private const val CHOSEONG = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"
+    private const val JUNGSEONG = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ"
+
+    /** 자음(첫소리)과 모음을 합쳐 받침 없는 음절을 만듭니다: ㄴ+ㅏ → 나 */
+    fun compose(initial: Char, vowel: Char): Char? {
+        val cho = CHOSEONG.indexOf(initial)
+        val jung = JUNGSEONG.indexOf(vowel)
+        if (cho < 0 || jung < 0) return null
+        return (HANGUL_START.code + (cho * JUNGSEONG.length + jung) * JONG_COUNT).toChar()
+    }
+
     private val nativeNumbers = listOf("하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열")
     private val nativeCounterNumbers = listOf("한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열")
 

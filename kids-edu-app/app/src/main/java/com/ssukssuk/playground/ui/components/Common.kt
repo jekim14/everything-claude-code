@@ -53,19 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -161,99 +158,207 @@ fun rememberPulse(min: Float = 0.94f, max: Float = 1.06f, periodMillis: Int = 90
     )
 }
 
+/**
+ * 종이 공작처럼 바닥에 두툼한 그림자가 있는 판. 누르면 그림자 쪽으로 쏙 들어갑니다.
+ * [onClick]이 없으면 누를 수 없는 판입니다.
+ */
+@Composable
+fun ChunkyBox(
+    modifier: Modifier = Modifier,
+    color: Color = Color.White,
+    shadow: Color = KidsColors.PaperShadow,
+    radius: Dp = 26.dp,
+    depth: Dp = 6.dp,
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    contentAlignment: Alignment = Alignment.Center,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val press by animateFloatAsState(
+        targetValue = if (pressed) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium),
+        label = "chunkyPress",
+    )
+    val shape = RoundedCornerShape(radius)
+    Box(
+        modifier = modifier
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
+            .drawBehind {
+                val d = depth.toPx()
+                val r = radius.toPx()
+                drawRoundRect(
+                    color = shadow,
+                    topLeft = Offset(0f, d),
+                    size = androidx.compose.ui.geometry.Size(size.width, size.height - d),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r),
+                )
+            }
+            .padding(bottom = depth),
+        contentAlignment = contentAlignment,
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer { translationY = press * depth.toPx() }
+                .background(color, shape),
+        )
+        Box(
+            modifier = Modifier
+                .graphicsLayer { translationY = press * depth.toPx() },
+            contentAlignment = contentAlignment,
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun RoundIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 60.dp,
+    background: Color = Color.White,
+    shadow: Color = KidsColors.PaperShadow,
+    enabled: Boolean = true,
+) {
+    val services = LocalServices.current
+    ChunkyBox(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            },
+        color = background,
+        shadow = shadow,
+        radius = size * 0.34f,
+        depth = 5.dp,
+        enabled = enabled,
+        onClick = {
+            services.sound.play(Sfx.TAP)
+            onClick()
+        },
+    ) {
+        VectorIcon(icon, size = size * 0.52f)
+    }
+}
+
+/** 그림 문자를 쓰는 둥근 버튼 */
 @Composable
 fun RoundIconButton(
     icon: String,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 56.dp,
+    size: Dp = 60.dp,
     background: Color = Color.White,
+    shadow: Color = KidsColors.PaperShadow,
     enabled: Boolean = true,
 ) {
     val services = LocalServices.current
-    Box(
+    ChunkyBox(
         modifier = modifier
             .size(size)
-            .shadow(4.dp, CircleShape)
-            .background(background, CircleShape)
-            .bouncyClick(enabled) {
-                services.sound.play(Sfx.TAP)
-                onClick()
-            }
+            .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
             .semantics {
                 this.contentDescription = contentDescription
                 role = Role.Button
             },
-        contentAlignment = Alignment.Center,
+        color = background,
+        shadow = shadow,
+        radius = size * 0.34f,
+        depth = 5.dp,
+        enabled = enabled,
+        onClick = {
+            services.sound.play(Sfx.TAP)
+            onClick()
+        },
     ) {
-        Text(
-            text = icon,
-            fontSize = (size.value * 0.44f).sp,
-            modifier = Modifier.clearAndSetSemantics { },
-        )
+        Text(text = icon, fontSize = (size.value * 0.4f).sp, modifier = Modifier.clearAndSetSemantics { })
     }
 }
 
-/** 큼직한 알약 모양 버튼 */
+/** 큼직한 입체 버튼 ("또 할래!") */
 @Composable
 fun PillButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: String? = null,
-    color: Color = KidsColors.Leaf,
+    color: Color = KidsColors.Correct,
+    shadow: Color = KidsColors.CorrectDeep,
     contentColor: Color = Color.White,
-    fontSize: TextUnit = 22.sp,
+    fontSize: TextUnit = 24.sp,
     enabled: Boolean = true,
 ) {
     val services = LocalServices.current
-    Row(
+    ChunkyBox(
         modifier = modifier
-            .shadow(6.dp, RoundedCornerShape(50))
-            .background(if (enabled) color else color.copy(alpha = 0.4f), RoundedCornerShape(50))
-            .bouncyClick(enabled) {
-                services.sound.play(Sfx.TAP)
-                onClick()
-            }
-            .padding(horizontal = 26.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+            .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
+            .semantics { role = Role.Button },
+        color = color,
+        shadow = shadow,
+        radius = 24.dp,
+        enabled = enabled,
+        onClick = {
+            services.sound.play(Sfx.TAP)
+            onClick()
+        },
     ) {
-        if (icon != null) {
-            Text(icon, fontSize = fontSize, modifier = Modifier.clearAndSetSemantics { })
-            Spacer(Modifier.width(10.dp))
+        Row(
+            modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            if (icon != null) {
+                Text(icon, fontSize = fontSize, modifier = Modifier.clearAndSetSemantics { })
+                Spacer(Modifier.width(10.dp))
+            }
+            Text(text, fontSize = fontSize, color = contentColor)
         }
-        Text(text, fontSize = fontSize, color = contentColor, fontWeight = FontWeight.ExtraBold)
     }
 }
 
-/** 놀이 진행을 별로 보여 줍니다. 채워지는 순간 톡 커집니다. */
+/** 놀이 진행을 동그라미로 보여 줍니다. 채워지는 순간 톡 커집니다. */
 @Composable
-fun ProgressStars(done: Int, total: Int, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+fun ProgressDots(done: Int, total: Int, color: Color, modifier: Modifier = Modifier) {
+    Row(
+        modifier.semantics { contentDescription = "$total 중 $done" },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         repeat(total) { i ->
             val filled = i < done
             val scale by animateFloatAsState(
-                targetValue = if (filled) 1f else 0.72f,
+                targetValue = if (filled) 1f else 0.85f,
                 animationSpec = spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessMedium),
-                label = "star$i",
+                label = "dot$i",
             )
-            Text(
-                text = "⭐",
-                fontSize = 24.sp,
-                modifier = Modifier.graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    alpha = if (filled) 1f else 0.28f
-                },
+            Box(
+                Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .background(if (filled) color else color.copy(alpha = 0.18f), CircleShape),
             )
         }
     }
 }
 
 /**
- * 모든 놀이 화면의 공통 틀: 부드러운 배경, 집 버튼, 제목, 진행 별, 다시 듣기 버튼.
+ * 모든 놀이 화면의 공통 틀: 평평한 종이 바탕, 집 버튼, 영역 색 제목 띠, 진행 동그라미, 다시 듣기 버튼.
+ * [color]는 제목 띠 색(영역의 진한 색)입니다.
  */
 @Composable
 fun GameScaffold(
@@ -264,29 +369,35 @@ fun GameScaffold(
     progress: Int = 0,
     total: Int = 0,
     onReplayVoice: (() -> Unit)? = null,
+    background: Color = KidsColors.Paper,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val top = color.copy(alpha = 0.45f).compositeOver(Color.White)
     Box(
         modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(top, KidsColors.Cream))),
+            .background(background),
     ) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RoundIconButton(icon = "🏠", contentDescription = "처음 화면으로", onClick = onHome, size = 52.dp)
-                Spacer(Modifier.width(12.dp))
-                Text(title, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = KidsColors.Ink)
+                RoundIconButton(icon = KidIcons.home(KidsColors.Ink), contentDescription = "처음 화면으로", onClick = onHome, size = 56.dp)
+                Spacer(Modifier.width(14.dp))
+                Box(
+                    Modifier
+                        .background(color, RoundedCornerShape(50))
+                        .padding(horizontal = 22.dp, vertical = 8.dp),
+                ) {
+                    Text(title, fontSize = 24.sp, color = Color.White, maxLines = 1)
+                }
                 Spacer(Modifier.weight(1f))
-                if (total > 0) ProgressStars(done = progress, total = total)
+                if (total > 0) ProgressDots(done = progress, total = total, color = color)
                 if (onReplayVoice != null) {
-                    Spacer(Modifier.width(10.dp))
-                    RoundIconButton(icon = "🔊", contentDescription = "다시 듣기", onClick = onReplayVoice, size = 52.dp)
+                    Spacer(Modifier.width(14.dp))
+                    RoundIconButton(icon = KidIcons.speaker(KidsColors.Ink), contentDescription = "다시 듣기", onClick = onReplayVoice, size = 56.dp)
                 }
             }
             Box(
@@ -329,9 +440,7 @@ fun SpeechBubble(
                 path.close()
                 drawPath(path, tailColor)
             }
-            .shadow(3.dp, RoundedCornerShape(22.dp))
-            .background(Color.White, RoundedCornerShape(22.dp))
-            .border(2.dp, KidsColors.Ink.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
+            .background(Color.White, RoundedCornerShape(24.dp))
             .padding(horizontal = 18.dp, vertical = 12.dp),
     ) {
         AnimatedContent(
@@ -378,9 +487,12 @@ fun BurstEffect(
     }
 }
 
-enum class AnswerState { Normal, Dimmed, Correct }
+enum class AnswerState { Normal, Dimmed, Correct, Hint }
 
-/** 정답 선택 카드. 맞히면 커지며 초록 테두리, 틀린 선택지는 흐려지고 흔들립니다. */
+/**
+ * 정답 선택 카드. 맞히면 커지며 초록 테두리, 틀린 선택지는 흐려지고 흔들립니다.
+ * [AnswerState.Hint]는 두 번 틀렸을 때 정답 쪽을 노란 테두리로 살짝 알려 줍니다.
+ */
 @Composable
 fun AnswerCard(
     state: AnswerState,
@@ -391,34 +503,47 @@ fun AnswerCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (state == AnswerState.Correct) 1.08f else 1f,
+        targetValue = if (state == AnswerState.Correct) 1.06f else 1f,
         animationSpec = spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMediumLow),
         label = "answerScale",
     )
-    val alpha by animateFloatAsState(if (state == AnswerState.Dimmed) 0.4f else 1f, label = "answerAlpha")
-    val shape = RoundedCornerShape(24.dp)
-    Column(
+    val alpha by animateFloatAsState(if (state == AnswerState.Dimmed) 0.35f else 1f, label = "answerAlpha")
+    val hintPulse = rememberPulse(0.97f, 1.04f, 700)
+    val shape = RoundedCornerShape(26.dp)
+    val border = when (state) {
+        AnswerState.Correct -> KidsColors.Correct
+        AnswerState.Hint -> KidsColors.Hint
+        else -> null
+    }
+    ChunkyBox(
         modifier = modifier
             .shake(shakeState)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                val pulse = if (state == AnswerState.Hint) hintPulse.value else 1f
+                scaleX = scale * pulse
+                scaleY = scale * pulse
                 this.alpha = alpha
             }
-            .shadow(6.dp, shape)
-            .background(if (state == AnswerState.Correct) Color(0xFFE8F5E9) else Color.White, shape)
-            .then(if (state == AnswerState.Correct) Modifier.border(4.dp, KidsColors.Correct, shape) else Modifier)
-            .bouncyClick(enabled = state != AnswerState.Dimmed, onClick = onClick)
             .then(
                 if (contentDescription != null) {
                     Modifier.semantics { this.contentDescription = contentDescription }
                 } else {
                     Modifier
                 },
-            )
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        content = content,
-    )
+            ),
+        color = if (state == AnswerState.Correct) KidsColors.CorrectSoft else Color.White,
+        shadow = if (state == AnswerState.Correct) Color(0xFFA8DDB5) else KidsColors.PaperShadow,
+        enabled = state != AnswerState.Dimmed,
+        onClick = onClick,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (border != null) Modifier.border(5.dp, border, shape) else Modifier)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            content = content,
+        )
+    }
 }

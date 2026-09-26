@@ -11,6 +11,15 @@ interface Speaker {
     fun speak(text: String)
 
     fun stop()
+
+    /**
+     * 아이 이름을 알려 줍니다. 미리 녹음한 음성에 이 이름으로 부르는 파일이 없으면
+     * 이름 부분만 빼고 녹음된 음성으로 읽습니다(목소리가 중간에 바뀌지 않도록).
+     */
+    fun useName(name: String) = Unit
+
+    /** 미리 녹음한 음성 파일 수 (보호자 화면 안내용) */
+    val recordedClips: Int get() = 0
 }
 
 /** 짧은 효과음 종류 */

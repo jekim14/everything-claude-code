@@ -28,7 +28,11 @@ class GameEnv(
 
     fun play(sfx: Sfx) = sound.play(sfx)
 
-    fun praise(): String = Phrases.praise.random(random)
+    /**
+     * 과정 칭찬 한마디. [afterMiss]면 "다시 생각해서 찾아냈구나"처럼 다시 도전한 과정을 짚어 줍니다.
+     */
+    fun praise(afterMiss: Boolean = false): String =
+        (if (afterMiss) Phrases.praiseAfterRetry else Phrases.praiseFirstTry).random(random)
 
     fun retry(): String = Phrases.retry.random(random)
 
@@ -48,12 +52,15 @@ class GameEnv(
 fun GameContent(env: GameEnv) {
     when (env.game) {
         Game.HANGUL -> HangulGame(env)
+        Game.SYLLABLE -> SyllableGame(env)
         Game.COUNTING -> CountingGame(env)
+        Game.NUMBER_PATH -> NumberPathGame(env)
         Game.BALLOON -> BalloonGame(env)
         Game.SHAPES -> ShapeGame(env)
         Game.MEMORY -> MemoryGame(env)
         Game.PATTERN -> PatternGame(env)
         Game.EMOTION -> EmotionGame(env)
+        Game.STOP_GO -> StopGoGame(env)
         Game.DRAWING -> DrawingGame(env)
         Game.XYLOPHONE -> XylophoneGame(env)
         Game.MOVEMENT -> MovementGame(env)

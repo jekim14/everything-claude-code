@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.MemoryFace
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.logic.FlipOutcome
@@ -73,11 +74,11 @@ fun MemoryGame(env: GameEnv) {
         }
     }
 
-    fun prompt() = env.say("똑같은 그림 짝꿍을 찾아봐요!")
+    fun prompt() = env.say(Lines.MEMORY_PROMPT)
 
     LaunchedEffect(Unit) {
         delay(600)
-        env.say("그림을 잘 보고 기억해요!")
+        env.say(Lines.MEMORY_PREVIEW)
         delay(difficulty.memoryPreviewMillis + 1200)
         previewing = false
         env.play(Sfx.FLIP)
@@ -91,26 +92,26 @@ fun MemoryGame(env: GameEnv) {
             FlipOutcome.Ignored -> return
             is FlipOutcome.First -> {
                 env.play(Sfx.FLIP)
-                env.say(face.name)
+                env.say(Lines.memoryFace(face))
             }
             is FlipOutcome.Match -> {
                 env.play(Sfx.CORRECT)
                 celebrate++
                 if (board.isComplete) {
                     val word = env.praise()
-                    praise = word
-                    env.say("$word 짝꿍을 모두 찾았어요!")
+                    praise = word.substringBefore(' ')
+                    env.say(Lines.memoryAllDone(word))
                     scope.launch {
                         delay(1800)
                         env.complete(board.pairCount, board.moves)
                     }
                 } else {
-                    env.say("짝꿍을 찾았어요! ${face.name}!")
+                    env.say(Lines.memoryMatch(face))
                 }
             }
             is FlipOutcome.Mismatch -> {
                 env.play(Sfx.FLIP)
-                env.say("${face.name}! 짝꿍이 아니에요. 다시 찾아봐요.")
+                env.say(Lines.memoryMismatch(face))
                 scope.launch {
                     delay(1300)
                     board.hideMismatch()

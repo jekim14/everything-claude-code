@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.ssukssuk.playground.core.Game
-import com.ssukssuk.playground.core.Reward
+import com.ssukssuk.playground.content.Phrases
+import com.ssukssuk.playground.content.TalkCards
 import com.ssukssuk.playground.ui.components.CelebrationOverlay
+import com.ssukssuk.playground.ui.components.RoundResult
 import com.ssukssuk.playground.ui.components.LocalServices
 import com.ssukssuk.playground.ui.games.GameContent
 import com.ssukssuk.playground.ui.games.GameEnv
@@ -54,7 +56,7 @@ fun SsukSsukApp(appState: AppState) {
                 label = "screen",
             ) { screen ->
                 when (screen) {
-                    Screen.Onboarding -> OnboardingScreen(onChooseAge = appState::chooseAge)
+                    Screen.Onboarding -> OnboardingScreen(onDone = appState::finishOnboarding)
                     Screen.Home -> HomeScreen(appState)
                     is Screen.Play -> GameHost(screen.game, appState)
                     Screen.Stickers -> StickerBookScreen(appState)
@@ -64,6 +66,8 @@ fun SsukSsukApp(appState: AppState) {
                     )
                     Screen.Parent -> ParentScreen(appState)
                     Screen.Rest -> RestScreen(
+                        reason = appState.restReason ?: RestReason.BREAK,
+                        childName = appState.childName,
                         onParent = { appState.navigate(Screen.Gate(GatePurpose.END_REST)) },
                     )
                 }
@@ -72,12 +76,12 @@ fun SsukSsukApp(appState: AppState) {
     }
 }
 
-/** 놀이 화면을 띄우고, 끝나면 축하 화면과 스티커를 보여 줍니다. */
+/** 놀이 화면을 띄우고, 끝나면 칭찬·깜짝 선물·대화 카드를 보여 줍니다. */
 @Composable
 private fun GameHost(game: Game, appState: AppState) {
     val services = LocalServices.current
     var session by remember { mutableIntStateOf(0) }
-    var reward by remember { mutableStateOf<Reward?>(null) }
+    var result by remember { mutableStateOf<RoundResult?>(null) }
     val onHome = {
         services.speaker.stop()
         appState.goHome()
@@ -85,25 +89,40 @@ private fun GameHost(game: Game, appState: AppState) {
     Box(Modifier.fillMaxSize()) {
         key(session) {
             val env = remember {
+                val random = Random(System.nanoTime())
                 GameEnv(
                     game = game,
-                    difficulty = appState.difficulty,
+                    difficulty = appState.difficulty(game),
                     services = services,
-                    random = Random(System.nanoTime()),
+                    random = random,
                     onHome = onHome,
-                    onComplete = { score, total -> reward = appState.completeGame(game, score, total) },
+                    onComplete = { score, total ->
+                        val completion = appState.completeGame(game, score, total)
+                        result = RoundResult(
+                            game = game,
+                            headline = Phrases.roundHeadline(hadRetry = score < total, freePlay = total == 0),
+                            giftChoices = completion.giftChoices,
+                            talkCard = TalkCards.forGame(game).randomOrNull(random),
+                        )
+                    },
                 )
             }
             GameContent(env)
         }
-        reward?.let { current ->
+        (result ?: appState.demoResult)?.let { current ->
             CelebrationOverlay(
-                reward = current,
+                result = current,
+                childName = appState.childName,
+                onClaim = { appState.claimSticker(it) },
                 onAgain = {
-                    reward = null
+                    result = null
+                    appState.demoResult = null
                     if (appState.restDue) appState.goHome() else session++
                 },
-                onHome = onHome,
+                onHome = {
+                    appState.demoResult = null
+                    onHome()
+                },
             )
         }
     }

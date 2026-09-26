@@ -10,38 +10,46 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssukssuk.playground.core.Reward
+import com.ssukssuk.playground.content.Lines
+import com.ssukssuk.playground.content.Sticker
+import com.ssukssuk.playground.core.Game
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.theme.KidsColors
+import com.ssukssuk.playground.ui.theme.ParentTextStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sin
@@ -108,87 +116,187 @@ fun ConfettiRain(modifier: Modifier = Modifier, count: Int = 90) {
     }
 }
 
+/** 한 판을 마친 결과: 큰 칭찬 글, 깜짝 선물 후보(없으면 빈 목록), 보호자 대화 카드 */
+data class RoundResult(
+    val game: Game,
+    val headline: String,
+    val giftChoices: List<Sticker>,
+    val talkCard: String?,
+)
+
 /**
- * 놀이를 마쳤을 때의 축하 화면: 색종이, 만세하는 쑥쑥이, 새 스티커.
- * 점수 대신 '끝까지 해낸 것'을 칭찬합니다.
+ * 놀이를 마쳤을 때의 축하 화면.
+ *
+ * 점수 대신 아이가 한 과정(끝까지, 다시 생각해서)을 칭찬하고, 그날 처음 마친 놀이면 선물 상자 세 개 중
+ * 하나를 스스로 고르게 합니다. 옆에는 보호자가 아이와 이어서 이야기할 거리를 보여 줍니다.
  */
 @Composable
 fun CelebrationOverlay(
-    reward: Reward,
+    result: RoundResult,
+    childName: String,
+    onClaim: (Sticker) -> Unit,
     onAgain: () -> Unit,
     onHome: () -> Unit,
 ) {
     val services = LocalServices.current
-    val cardScale = remember { Animatable(0.4f) }
-    val stickerScale = remember { Animatable(0f) }
-    val stickerSpin = remember { Animatable(-30f) }
-    LaunchedEffect(reward) {
+    val cardScale = remember { Animatable(0.5f) }
+    var picked by remember(result) { mutableStateOf<Sticker?>(null) }
+    val reveal = remember(result) { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(result) {
         services.sound.play(Sfx.CHEER)
-        val name = reward.sticker.name
-        services.speaker.speak(
-            if (reward.isNew) "참 잘했어요! 새 스티커, $name 스티커를 받았어요!" else "참 잘했어요! $name 스티커를 하나 더 받았어요!",
-        )
-        launch { cardScale.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)) }
-        delay(350)
-        services.sound.play(Sfx.STAR)
-        launch { stickerSpin.animateTo(0f, spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessLow)) }
-        stickerScale.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessLow))
+        val speech = Lines.celebration(childName, result.headline)
+        services.speaker.speak(if (result.giftChoices.isEmpty()) speech else "$speech ${Lines.GIFT_PROMPT}")
+        cardScale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow))
     }
-    Box(
+    fun pick(sticker: Sticker) {
+        if (picked != null) return
+        picked = sticker
+        onClaim(sticker)
+        services.sound.play(Sfx.STAR)
+        services.speaker.speak(Lines.giftPicked(sticker))
+        scope.launch { reveal.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessLow)) }
+    }
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0x99000000))
+            .background(Color(0x8C2B2748))
             // 뒤쪽 놀이 화면이 눌리지 않도록 터치를 막습니다.
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        ConfettiRain()
+        ConfettiRain(count = 50)
+        val showTalk = result.talkCard != null
+        val mainWidth = if (showTalk) minOf(560.dp, maxWidth * 0.62f) else minOf(560.dp, maxWidth * 0.9f)
+        val talkWidth = minOf(300.dp, maxWidth * 0.34f)
         Row(
-            modifier = Modifier
-                .graphicsLayer {
-                    scaleX = cardScale.value
-                    scaleY = cardScale.value
-                }
-                .shadow(16.dp, RoundedCornerShape(36.dp))
-                .background(KidsColors.Cream, RoundedCornerShape(36.dp))
-                .padding(horizontal = 28.dp, vertical = 16.dp),
+            modifier = Modifier.graphicsLayer {
+                scaleX = cardScale.value
+                scaleY = cardScale.value
+            },
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Mascot(
-                modifier = Modifier.size(width = 150.dp, height = 190.dp),
-                mood = MascotMood.EXCITED,
-                action = MascotAction.CHEER,
-            )
-            Spacer(Modifier.width(20.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("참 잘했어요!", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = KidsColors.Accent)
-                Spacer(Modifier.height(10.dp))
-                Box(
-                    modifier = Modifier
-                        .size(104.dp)
-                        .graphicsLayer {
-                            scaleX = stickerScale.value
-                            scaleY = stickerScale.value
-                            rotationZ = stickerSpin.value
-                        }
-                        .shadow(8.dp, CircleShape)
-                        .background(Color.White, CircleShape),
-                    contentAlignment = Alignment.Center,
+            ChunkyBox(
+                modifier = Modifier.width(mainWidth),
+                shadow = KidsColors.InkSoft,
+                radius = 36.dp,
+                depth = 8.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(reward.sticker.emoji, fontSize = 56.sp)
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = if (reward.isNew) "새 스티커: ${reward.sticker.name}" else "${reward.sticker.name} 스티커",
-                    fontSize = 20.sp,
-                    color = KidsColors.InkSoft,
-                )
-                Spacer(Modifier.height(14.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PillButton(text = "한 번 더", icon = "🔁", onClick = onAgain, color = KidsColors.Leaf)
-                    PillButton(text = "처음으로", icon = "🏠", onClick = onHome, color = Color(0xFF42A5F5))
+                    Mascot(
+                        modifier = Modifier.size(width = 104.dp, height = 132.dp),
+                        mood = MascotMood.EXCITED,
+                        action = MascotAction.CHEER,
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                        Text(result.headline, fontSize = 30.sp, color = KidsColors.Ink, textAlign = TextAlign.Center, lineHeight = 36.sp)
+                        if (result.giftChoices.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = picked?.let { "${it.name} 스티커!" } ?: "깜짝 선물! 하나 골라 볼까?",
+                                fontSize = 19.sp,
+                                color = KidsColors.InkSoft,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                result.giftChoices.forEachIndexed { i, sticker ->
+                                    GiftBox(
+                                        index = i,
+                                        sticker = sticker,
+                                        picked = picked,
+                                        reveal = { reveal.value },
+                                        onPick = { pick(sticker) },
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PillButton(text = "또 할래!", onClick = onAgain, fontSize = 21.sp)
+                            PillButton(
+                                text = "다른 놀이",
+                                onClick = onHome,
+                                color = Color(0xFFF1EEF8),
+                                shadow = Color(0xFFCFC9E2),
+                                contentColor = KidsColors.Ink,
+                                fontSize = 21.sp,
+                            )
+                        }
+                    }
                 }
             }
+            if (showTalk) TalkCard(text = result.talkCard!!, modifier = Modifier.width(talkWidth))
+        }
+    }
+}
+
+private val giftColors = listOf(
+    Color(0xFFFFE4DA) to Color(0xFFC8472A),
+    Color(0xFFD6F3EF) to Color(0xFF117A70),
+    Color(0xFFECE5FF) to Color(0xFF5A3FB0),
+)
+
+@Composable
+private fun GiftBox(index: Int, sticker: Sticker, picked: Sticker?, reveal: () -> Float, onPick: () -> Unit) {
+    val (soft, deep) = giftColors[index % giftColors.size]
+    val isPicked = picked == sticker
+    val dim = picked != null && !isPicked
+    ChunkyBox(
+        modifier = Modifier
+            .size(84.dp)
+            .graphicsLayer { alpha = if (dim) 0.35f else 1f }
+            .semantics { contentDescription = if (isPicked) "${sticker.name} 스티커" else "선물 상자 ${index + 1}" },
+        color = if (isPicked) KidsColors.Paper else soft,
+        shadow = if (isPicked) KidsColors.Sun else deep.copy(alpha = 0.35f),
+        radius = 24.dp,
+        onClick = onPick,
+        enabled = picked == null,
+    ) {
+        if (isPicked) {
+            Text(
+                sticker.emoji,
+                fontSize = 44.sp,
+                modifier = Modifier.graphicsLayer {
+                    val r = reveal()
+                    scaleX = r
+                    scaleY = r
+                    rotationZ = (1f - r) * -40f
+                },
+            )
+        } else {
+            val icon = remember(deep) { KidIcons.gift(deep) }
+            VectorIcon(icon, size = 50.dp)
+        }
+    }
+}
+
+/** 보호자에게 보여 주는 "함께 이야기해요" 카드 */
+@Composable
+fun TalkCard(text: String, modifier: Modifier = Modifier) {
+    ChunkyBox(
+        modifier = modifier,
+        color = KidsColors.TalkCard,
+        shadow = KidsColors.TalkCardShadow,
+        radius = 28.dp,
+        depth = 8.dp,
+        contentAlignment = Alignment.TopStart,
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val icon = remember { KidIcons.talk(KidsColors.Ink) }
+                VectorIcon(icon, size = 30.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("함께 이야기해요", fontSize = 21.sp, color = KidsColors.Ink)
+            }
+            Text("보호자와 함께 · 1분", style = ParentTextStyle, fontSize = 13.sp, color = KidsColors.TalkCardInk)
+            Text(text, style = ParentTextStyle, fontSize = 16.sp, lineHeight = 24.sp, color = KidsColors.Ink)
         }
     }
 }
@@ -210,8 +318,7 @@ fun PraisePop(text: String?, trigger: Int, modifier: Modifier = Modifier) {
         Box(modifier, contentAlignment = Alignment.Center) {
             Text(
                 text = text,
-                fontSize = 46.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 44.sp,
                 color = KidsColors.Accent,
                 modifier = Modifier.graphicsLayer {
                     scaleX = scale.value

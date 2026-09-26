@@ -39,8 +39,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.KidColor
-import com.ssukssuk.playground.content.Korean
 import com.ssukssuk.playground.content.Palette
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.components.GameScaffold
@@ -149,7 +149,7 @@ fun BalloonGame(env: GameEnv) {
     val scope = rememberCoroutineScope()
     val target = targets[round]
 
-    fun prompt() = env.say("${target.adjective} 풍선을 찾아서 톡 터뜨려 볼까요?")
+    fun prompt() = env.say(Lines.balloonPrompt(target))
 
     LaunchedEffect(round) {
         delay(if (round == 0) 800 else 200)
@@ -182,7 +182,7 @@ fun BalloonGame(env: GameEnv) {
             if (popped >= needed) {
                 roundDone = true
                 env.play(Sfx.CORRECT)
-                env.say("와! ${target.adjective} 풍선을 ${Korean.counterNumber(needed)} 개 다 터뜨렸어요!")
+                env.say(Lines.balloonRoundDone(target, needed))
                 scope.launch {
                     delay(2400)
                     if (round + 1 < targets.size) {
@@ -194,13 +194,13 @@ fun BalloonGame(env: GameEnv) {
                     }
                 }
             } else {
-                env.say("${Korean.countWord(popped)}!")
+                env.say(Lines.balloonCount(popped))
             }
         } else {
             wrongTaps++
             balloon.wobbleStart = field.time
             env.play(Sfx.WRONG)
-            env.say("이건 ${balloon.color.name} 풍선이에요. ${target.adjective} 풍선을 찾아봐요!")
+            env.say(Lines.balloonWrong(balloon.color, target))
         }
     }
 

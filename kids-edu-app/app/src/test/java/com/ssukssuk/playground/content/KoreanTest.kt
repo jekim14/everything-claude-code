@@ -51,10 +51,31 @@ class KoreanTest {
     }
 
     @Test
+    fun `calls names and composes syllables`() {
+        assertEquals("하늘아", Korean.vocative("하늘"))
+        assertEquals("민서야", Korean.vocative("민서"))
+        assertEquals('나', Korean.compose('ㄴ', 'ㅏ'))
+        assertEquals('가', Korean.compose('ㄱ', 'ㅏ'))
+        assertEquals('호', Korean.compose('ㅎ', 'ㅗ'))
+        assertEquals('이', Korean.compose('ㅇ', 'ㅣ'))
+        assertEquals(null, Korean.compose('a', 'ㅏ'))
+    }
+
+    @Test
     fun `content is complete and unique`() {
         assertEquals(14, HangulContent.consonants.size)
         assertEquals(14, HangulContent.consonants.map { it.letter }.toSet().size)
-        HangulContent.consonants.forEach { assertTrue(it.word.isNotBlank() && it.emoji.isNotBlank()) }
+        HangulContent.consonants.forEach { c ->
+            assertTrue(c.word.isNotBlank() && c.emoji.isNotBlank())
+            // 낱말 첫 음절은 그 자음으로 시작하는 받침 없는 단모음 음절
+            val first = c.word.first()
+            val vowelIndex = ((first - '가') % (21 * 28)) / 28
+            assertEquals(c.word, first, Korean.compose(c.letter.single(), "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ"[vowelIndex]))
+            assertTrue(c.word, vowelIndex in listOf(0, 4, 8, 13, 18, 20))
+            assertEquals(c.letter == "ㅇ", c.isSilentInitial)
+        }
+        SyllableContent.words.forEach { w -> assertEquals(w.word, w.syllable, w.word.first()) }
+        assertEquals(SyllableContent.words.size, SyllableContent.words.map { it.syllable }.toSet().size)
         assertEquals(Stickers.all.size, Stickers.all.map { it.id }.toSet().size)
         Songs.all.forEach { song ->
             assertTrue(song.notes.all { it in 0..7 })

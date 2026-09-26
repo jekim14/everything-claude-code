@@ -7,3 +7,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# 아이 이름이 들어간 음성과 시험 음성은 저장소에 올리지 않습니다.
+app/src/main/assets/voice_personal/
+voice/samples/

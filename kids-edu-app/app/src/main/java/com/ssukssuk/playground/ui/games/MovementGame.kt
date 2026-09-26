@@ -38,6 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
+import com.ssukssuk.playground.content.MoveText
+import com.ssukssuk.playground.content.MovementContent
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.components.GameScaffold
 import com.ssukssuk.playground.ui.components.Mascot
@@ -56,26 +59,31 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
 
+/** 동작 글([MoveText])과 쑥쑥이의 움직임. 글은 음성 목록에 들어가도록 content.MovementContent에 있습니다. */
 private class Move(
-    val title: String,
-    val icon: String,
-    val instruction: String,
-    val seconds: Float,
+    val text: MoveText,
     val pose: (Float) -> MascotPose,
-)
+) {
+    val title: String get() = text.title
+    val icon: String get() = text.icon
+    val instruction: String get() = text.instruction
+    val seconds: Float get() = text.seconds
+}
+
+private fun move(index: Int, pose: (Float) -> MascotPose) = Move(MovementContent.moves[index], pose)
 
 private const val TWO_PI = (2 * PI).toFloat()
 
 private val allMoves = listOf(
-    Move("만세!", "🙌", "두 팔을 하늘 높이 쭉 뻗어요. 만세!", 7f) { t ->
+    move(0) { t ->
         val s = sin(t * TWO_PI * 0.5f)
         MascotPose(leftArm = 165f + s * 10f, rightArm = 165f + s * 10f, squash = -0.06f - abs(s) * 0.03f, leafSway = s * 10f)
     },
-    Move("박수 짝짝", "👏", "박수를 짝짝짝 쳐요!", 7f) { t ->
+    move(1) { t ->
         val c = abs(sin(t * TWO_PI))
         MascotPose(leftArm = 110f + c * 62f, rightArm = 110f + c * 62f, squash = c * 0.03f, leafSway = c * 8f)
     },
-    Move("콩콩 뛰기", "🐰", "토끼처럼 제자리에서 콩콩 뛰어요!", 7f) { t ->
+    move(2) { t ->
         val h = abs(sin(t * TWO_PI * 0.8f))
         MascotPose(
             leftArm = 40f + h * 50f,
@@ -85,7 +93,7 @@ private val allMoves = listOf(
             leafSway = sin(t * TWO_PI * 0.8f) * 12f,
         )
     },
-    Move("한 발 서기", "⚖️", "한 발로 서서 균형을 잡아요. 흔들흔들, 넘어지지 않게!", 8f) { t ->
+    move(3) { t ->
         MascotPose(
             leftArm = 95f + sin(t * 3f) * 8f,
             rightArm = 95f - sin(t * 3f) * 8f,
@@ -94,7 +102,7 @@ private val allMoves = listOf(
             leafSway = sin(t * 2.2f) * 10f,
         )
     },
-    Move("옆으로 쭉", "🌈", "팔을 올리고 몸을 옆으로 쭉~ 기울여요. 이쪽, 저쪽!", 8f) { t ->
+    move(4) { t ->
         val s = sin(t * TWO_PI * 0.25f)
         MascotPose(
             tilt = s * 16f,
@@ -103,10 +111,10 @@ private val allMoves = listOf(
             leafSway = s * 14f,
         )
     },
-    Move("빙글빙글", "🌀", "제자리에서 빙글 한 바퀴 돌아요!", 7f) { t ->
+    move(5) { t ->
         MascotPose(leftArm = 80f, rightArm = 80f, turn = cos(t * TWO_PI * 0.5f), leafSway = sin(t * TWO_PI) * 10f)
     },
-    Move("숨쉬기", "🌬️", "코로 숨을 크게 들이마시고, 입으로 후~ 내쉬어요.", 10f) { t ->
+    move(6) { t ->
         val s = sin(t * TWO_PI / 5f)
         MascotPose(leftArm = 30f + max(0f, s) * 50f, rightArm = 30f + max(0f, s) * 50f, squash = -s * 0.07f, leafSway = s * 6f)
     },
@@ -120,7 +128,7 @@ private val allMoves = listOf(
 fun MovementGame(env: GameEnv) {
     val moves = remember {
         if (env.difficulty.isYounger) {
-            listOf(allMoves[0], allMoves[1], allMoves[2], allMoves[5], allMoves[6])
+            MovementContent.youngerMoveIndices.map { allMoves[it] }
         } else {
             allMoves
         }
@@ -132,7 +140,7 @@ fun MovementGame(env: GameEnv) {
 
     LaunchedEffect(Unit) {
         delay(800)
-        env.say("쑥쑥이랑 같이 몸을 움직여요! 먼저 주변에 부딪힐 물건이 없는지 살펴봐요. 준비되면 시작을 눌러요!")
+        env.say(Lines.MOVE_INTRO)
     }
 
     LaunchedEffect(started, index) {
@@ -140,7 +148,7 @@ fun MovementGame(env: GameEnv) {
         val move = moves[index]
         cheering = false
         elapsed = 0f
-        env.say("${move.title} ${move.instruction}")
+        env.say(Lines.move(move.text))
         var last = withFrameNanos { it }
         while (isActive && elapsed < move.seconds) {
             withFrameNanos { now ->
@@ -151,7 +159,7 @@ fun MovementGame(env: GameEnv) {
         }
         cheering = true
         env.play(Sfx.STAR)
-        env.say(env.praise())
+        env.say(Lines.movePraise.random(env.random))
         delay(1600)
         if (index + 1 < moves.size) index++ else env.complete()
     }
@@ -167,7 +175,7 @@ fun MovementGame(env: GameEnv) {
         },
         total = moves.size,
         onReplayVoice = if (started) {
-            { env.say(moves[index].instruction) }
+            { env.say(Lines.moveInstruction(moves[index].text)) }
         } else {
             null
         },
@@ -241,9 +249,10 @@ fun MovementGame(env: GameEnv) {
                     if (!cheering) {
                         PillButton(
                             text = "다음 동작",
-                            icon = "▶",
                             fontSize = 17.sp,
-                            color = Color(0xFF42A5F5),
+                            color = Color(0xFFFFF0CC),
+                            shadow = Color(0xFFF2CE7E),
+                            contentColor = KidsColors.Ink,
                             onClick = { elapsed = move.seconds },
                         )
                     }

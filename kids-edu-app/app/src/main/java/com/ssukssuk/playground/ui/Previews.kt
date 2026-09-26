@@ -20,7 +20,7 @@ import com.ssukssuk.playground.ui.theme.SsukSsukTheme
 
 private fun previewState(): AppState {
     val repository = ProgressRepository(InMemoryStore())
-    repository.saveSettings(Settings(age = 5))
+    repository.saveSettings(Settings(age = 5, childName = "하늘"))
     return AppState(repository, Services(SilentSpeaker, SilentSoundPlayer))
 }
 

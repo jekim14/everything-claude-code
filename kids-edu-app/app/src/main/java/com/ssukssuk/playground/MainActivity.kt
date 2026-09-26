@@ -12,12 +12,14 @@ import com.ssukssuk.playground.core.ProgressRepository
 import com.ssukssuk.playground.core.Services
 import com.ssukssuk.playground.platform.AndroidSoundPlayer
 import com.ssukssuk.playground.platform.AndroidSpeaker
+import com.ssukssuk.playground.platform.ClipSpeaker
 import com.ssukssuk.playground.platform.SharedPrefsStore
 import com.ssukssuk.playground.ui.AppState
 import com.ssukssuk.playground.ui.SsukSsukApp
 
 class MainActivity : ComponentActivity() {
     private lateinit var speaker: AndroidSpeaker
+    private lateinit var voice: ClipSpeaker
     private lateinit var sound: AndroidSoundPlayer
 
     /** 화면 캡처 계측 테스트에서 화면을 바꾸기 위해 모듈 안에 공개합니다. */
@@ -30,9 +32,11 @@ class MainActivity : ComponentActivity() {
         hideSystemBars()
 
         speaker = AndroidSpeaker(this)
+        // 미리 녹음한 고품질 음성(assets/voice)이 있으면 그 음성으로, 없으면 기기 음성 합성으로 읽습니다.
+        voice = ClipSpeaker(this, speaker)
         sound = AndroidSoundPlayer(this)
         val repository = ProgressRepository(SharedPrefsStore(getSharedPreferences(PREFS_NAME, MODE_PRIVATE)))
-        appState = AppState(repository, Services(speaker, sound))
+        appState = AppState(repository, Services(voice, sound))
 
         setContent {
             BackHandler(enabled = appState.canGoBack) { appState.back() }
@@ -52,6 +56,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        voice.stop()
         speaker.shutdown()
         sound.release()
         super.onDestroy()

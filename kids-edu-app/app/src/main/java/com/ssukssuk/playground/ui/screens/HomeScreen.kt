@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,51 +29,54 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Korean
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.core.Game
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.AppState
 import com.ssukssuk.playground.ui.GatePurpose
 import com.ssukssuk.playground.ui.Screen
+import com.ssukssuk.playground.ui.components.ChunkyBox
+import com.ssukssuk.playground.ui.components.GameIcon
+import com.ssukssuk.playground.ui.components.KidIcons
 import com.ssukssuk.playground.ui.components.LocalServices
 import com.ssukssuk.playground.ui.components.Mascot
 import com.ssukssuk.playground.ui.components.MascotAction
 import com.ssukssuk.playground.ui.components.RoundIconButton
 import com.ssukssuk.playground.ui.components.SkyBackground
-import com.ssukssuk.playground.ui.components.SpeechBubble
+import com.ssukssuk.playground.ui.components.VectorIcon
 import com.ssukssuk.playground.ui.components.bouncyClick
-import com.ssukssuk.playground.ui.components.rememberBob
 import com.ssukssuk.playground.ui.theme.KidsColors
+import com.ssukssuk.playground.ui.theme.ParentTextStyle
 import kotlinx.coroutines.delay
 import kotlin.math.ceil
-
-private val greetings = listOf(
-    "오늘은 뭐 하고 놀까?",
-    "안녕! 나는 쑥쑥이야!",
-    "하고 싶은 놀이를 눌러 봐!",
-    "같이 놀자! 무엇이든 좋아!",
-)
 
 @Composable
 fun HomeScreen(appState: AppState) {
     val services = LocalServices.current
+    val name = appState.childName
     var greetingIndex by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         delay(400)
-        services.speaker.speak(greetings[0])
+        val untilRest = appState.secondsUntilRest
+        when {
+            untilRest != null && untilRest <= REST_WARNING_SECONDS -> services.speaker.speak(Lines.REST_SOON)
+            !appState.greeted -> {
+                appState.greeted = true
+                services.speaker.speak(Lines.homeHello(name, Lines.homeGreetings[0]))
+            }
+            else -> services.speaker.speak(Lines.homeGreetings[0])
+        }
     }
     Box(Modifier.fillMaxSize()) {
         SkyBackground()
@@ -82,7 +84,7 @@ fun HomeScreen(appState: AppState) {
             Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 24.dp),
         ) {
             Row(
                 modifier = Modifier
@@ -92,44 +94,109 @@ fun HomeScreen(appState: AppState) {
             ) {
                 Mascot(
                     modifier = Modifier
-                        .size(width = 96.dp, height = 108.dp)
+                        .size(width = 88.dp, height = 100.dp)
                         .bouncyClick {
-                            greetingIndex = (greetingIndex + 1) % greetings.size
+                            greetingIndex = (greetingIndex + 1) % Lines.homeGreetings.size
                             services.sound.play(Sfx.STAR)
-                            services.speaker.speak(greetings[greetingIndex])
+                            services.speaker.speak(Lines.homeGreetings[greetingIndex])
                         },
                     action = MascotAction.WAVE,
                 )
-                SpeechBubble(
-                    text = greetings[greetingIndex],
-                    modifier = Modifier.padding(start = 18.dp),
-                    fontSize = 20.sp,
+                Spacer(Modifier.width(18.dp))
+                GreetingBubble(
+                    title = if (name.isBlank()) "안녕!" else "안녕, ${Korean.vocative(name)}!",
+                    subtitle = Lines.homeGreetings[greetingIndex],
                 )
                 Spacer(Modifier.weight(1f))
-                StarCounter(appState.stars)
-                Spacer(Modifier.width(10.dp))
+                val limit = appState.todayLimitSeconds
+                if (limit != null) {
+                    SunMeter(progress = appState.todaySeconds.toFloat() / limit)
+                    Spacer(Modifier.width(12.dp))
+                }
                 RoundIconButton(
-                    icon = "📒",
+                    icon = KidIcons.book(KidsColors.Ink),
                     contentDescription = "스티커 책",
+                    shadow = KidsColors.SkyShadow,
+                    size = 64.dp,
                     onClick = {
-                        services.speaker.speak("스티커 책")
+                        services.speaker.speak(Lines.STICKER_BOOK)
                         appState.navigate(Screen.Stickers)
                     },
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(12.dp))
                 ParentButton(onClick = { appState.navigate(Screen.Gate(GatePurpose.PARENT_AREA)) })
             }
             GameGrid(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(bottom = 12.dp),
+                    .padding(top = 8.dp, bottom = 16.dp),
                 onPick = { game ->
                     services.sound.play(Sfx.TAP)
-                    services.speaker.speak(game.title)
+                    services.speaker.speak(Lines.gameTitle(game))
                     appState.navigate(Screen.Play(game))
                 },
             )
+        }
+    }
+}
+
+private const val REST_WARNING_SECONDS = 3 * 60
+
+@Composable
+private fun GreetingBubble(title: String, subtitle: String) {
+    Box {
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 1.dp)
+                .size(18.dp)
+                .graphicsLayer {
+                    translationX = -9.dp.toPx()
+                    rotationZ = 45f
+                }
+                .background(Color.White),
+        )
+        ChunkyBox(shadow = KidsColors.SkyShadow, radius = 26.dp, depth = 5.dp, contentAlignment = Alignment.CenterStart) {
+            Column(Modifier.padding(horizontal = 22.dp, vertical = 12.dp)) {
+                Text(title, fontSize = 26.sp, color = KidsColors.Ink)
+                Text(subtitle, fontSize = 20.sp, color = KidsColors.InkSoft)
+            }
+        }
+    }
+}
+
+/** 오늘 놀 시간: 해님에서 달님까지 막대가 차오릅니다. 글을 몰라도 끝이 다가오는 것을 볼 수 있습니다. */
+@Composable
+private fun SunMeter(progress: Float) {
+    val sun = remember { KidIcons.sun(KidsColors.SunDeep) }
+    val moon = remember { KidIcons.moon(KidsColors.Moon) }
+    ChunkyBox(
+        modifier = Modifier.semantics { contentDescription = "오늘 놀이 시간" },
+        shadow = KidsColors.SkyShadow,
+        radius = 30.dp,
+        depth = 5.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            VectorIcon(sun, size = 28.dp)
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier
+                    .size(width = 96.dp, height = 12.dp)
+                    .background(Color(0xFFEAF4FB), RoundedCornerShape(6.dp)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(progress.coerceIn(0.02f, 1f))
+                        .height(12.dp)
+                        .background(KidsColors.Sun, RoundedCornerShape(6.dp)),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            VectorIcon(moon, size = 24.dp)
         }
     }
 }
@@ -138,7 +205,7 @@ fun HomeScreen(appState: AppState) {
 private fun GameGrid(modifier: Modifier, onPick: (Game) -> Unit) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val games = Game.entries
-        val gap = 14.dp
+        val gap = 18.dp
         val columns = when {
             maxWidth > maxHeight -> 5
             maxWidth > 700.dp -> 4
@@ -147,7 +214,8 @@ private fun GameGrid(modifier: Modifier, onPick: (Game) -> Unit) {
         val rows = ceil(games.size / columns.toFloat()).toInt()
         val tileWidth = (maxWidth - gap * (columns - 1)) / columns
         val tileHeight = (maxHeight - gap * (rows - 1)) / rows
-        val tile: Dp = min(min(tileWidth, tileHeight), 230.dp)
+        val width: Dp = min(tileWidth, 200.dp)
+        val height: Dp = min(tileHeight, width * 0.86f)
         Column(verticalArrangement = Arrangement.spacedBy(gap), horizontalAlignment = Alignment.CenterHorizontally) {
             games.chunked(columns).forEachIndexed { rowIndex, rowGames ->
                 Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -155,7 +223,8 @@ private fun GameGrid(modifier: Modifier, onPick: (Game) -> Unit) {
                         GameTile(
                             game = game,
                             index = rowIndex * columns + columnIndex,
-                            size = tile,
+                            width = width,
+                            height = height,
                             onClick = { onPick(game) },
                         )
                     }
@@ -166,52 +235,43 @@ private fun GameGrid(modifier: Modifier, onPick: (Game) -> Unit) {
 }
 
 @Composable
-private fun GameTile(game: Game, index: Int, size: Dp, onClick: () -> Unit) {
+private fun GameTile(game: Game, index: Int, width: Dp, height: Dp, onClick: () -> Unit) {
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        delay(index * 70L)
-        appear.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+        delay(index * 50L)
+        appear.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow))
     }
-    val bob = rememberBob(periodMillis = 2600, phase = index * 0.17f)
-    val color = Color(game.colorArgb)
-    val shape = RoundedCornerShape(size * 0.2f)
-    Box(
+    val domain = game.domain
+    val plate = min(height * 0.52f, width * 0.46f)
+    ChunkyBox(
         modifier = Modifier
-            .size(size)
+            .size(width, height)
             .graphicsLayer {
                 scaleX = appear.value
                 scaleY = appear.value
-                translationY = bob.value * 3.dp.toPx()
+                alpha = appear.value.coerceIn(0f, 1f)
             }
-            .shadow(8.dp, shape)
-            .background(
-                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.55f).compositeOver(color), color)),
-                shape,
-            )
-            .bouncyClick(onClick = onClick)
             .semantics { contentDescription = game.title },
-        contentAlignment = Alignment.Center,
+        shadow = Color(domain.shadowArgb),
+        radius = min(28.dp, height * 0.2f),
+        onClick = onClick,
     ) {
-        // 누리과정 영역 색 표시 (보호자용)
-        Box(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(size * 0.08f)
-                .size(size * 0.08f)
-                .background(Color(game.domain.colorArgb), CircleShape),
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clearAndSetSemantics { }) {
-            Text(
-                text = game.icon,
-                fontSize = (size.value * 0.36f).sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = KidsColors.Ink,
-                modifier = Modifier.graphicsLayer { rotationZ = bob.value * 4f },
-            )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(height * 0.05f),
+            modifier = Modifier.clearAndSetSemantics { },
+        ) {
+            Box(
+                Modifier
+                    .size(plate)
+                    .background(Color(domain.softArgb), RoundedCornerShape(plate * 0.29f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                GameIcon(game = game, color = Color(domain.colorArgb), size = plate * 0.7f)
+            }
             Text(
                 text = game.title,
-                fontSize = (size.value * 0.13f).sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = (height.value * 0.15f).coerceIn(14f, 22f).sp,
                 color = KidsColors.Ink,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -221,33 +281,18 @@ private fun GameTile(game: Game, index: Int, size: Dp, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StarCounter(stars: Int) {
-    Row(
-        modifier = Modifier
-            .shadow(4.dp, RoundedCornerShape(50))
-            .background(Color.White, RoundedCornerShape(50))
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .semantics { contentDescription = "받은 별 ${stars}개" },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("⭐", fontSize = 24.sp, modifier = Modifier.clearAndSetSemantics { })
-        Spacer(Modifier.width(6.dp))
-        Text("$stars", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = KidsColors.Ink, modifier = Modifier.clearAndSetSemantics { })
-    }
-}
-
-@Composable
 private fun ParentButton(onClick: () -> Unit) {
+    val lock = remember { KidIcons.lock(KidsColors.InkSoft) }
     Row(
         modifier = Modifier
-            .background(Color.White.copy(alpha = 0.7f), RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
             .bouncyClick(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp)
             .semantics { contentDescription = "보호자 메뉴" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("🔒", fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics { })
-        Spacer(Modifier.width(4.dp))
-        Text("보호자", fontSize = 15.sp, color = KidsColors.InkSoft, modifier = Modifier.clearAndSetSemantics { })
+        VectorIcon(lock, size = 18.dp)
+        Spacer(Modifier.width(6.dp))
+        Text("보호자", style = ParentTextStyle, fontSize = 15.sp, color = KidsColors.InkSoft, modifier = Modifier.clearAndSetSemantics { })
     }
 }

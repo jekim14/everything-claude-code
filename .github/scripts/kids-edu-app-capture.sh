@@ -26,8 +26,8 @@ mkdir -p "$OUT"
 adb pull /data/local/tmp/ssukssuk-screens raw-screens
 count=$(ls raw-screens/*.png | wc -l)
 echo "캡처 $count 장"
-if [ "$count" -lt 17 ]; then
-  echo "::error::캡처가 부족합니다 ($count/17)"
+if [ "$count" -lt 22 ]; then
+  echo "::error::캡처가 부족합니다 ($count/22)"
   exit 1
 fi
 

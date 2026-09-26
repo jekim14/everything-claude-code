@@ -120,12 +120,16 @@ data class EmotionQuestion(
 )
 
 object EmotionQuiz {
-    /** 만 4세는 기쁨·슬픔·화남·놀람, 만 5세는 무서움까지 다룹니다. */
-    fun emotionsFor(choiceCount: Int): List<Emotion> =
-        if (choiceCount >= 4) Emotion.entries.toList() else Emotion.entries.filter { it != Emotion.SCARED }
+    /**
+     * 1단계는 기쁨·슬픔·화남·무서움, 2단계부터 놀람까지 다룹니다.
+     * 유아는 기쁨을 가장 먼저, 그다음 슬픔·화남, 무서움, 놀람 순서로 구별합니다(Widen & Russell 2003).
+     */
+    fun emotionsFor(stage: Int): List<Emotion> =
+        if (stage >= 2) Emotion.entries.toList() else Emotion.entries.filter { it != Emotion.SURPRISED }
 
-    fun generate(random: Random, count: Int, choiceCount: Int): List<EmotionQuestion> {
-        val allowed = emotionsFor(choiceCount)
+    fun generate(random: Random, count: Int, choiceCount: Int, stage: Int): List<EmotionQuestion> {
+        val allowed = emotionsFor(stage)
+        require(choiceCount in 2..allowed.size) { "choiceCount must be between 2 and ${allowed.size}" }
         val byEmotion = EmotionContent.situations
             .filter { it.emotion in allowed }
             .shuffled(random)

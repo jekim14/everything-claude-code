@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.PatternItem
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.logic.PatternQuiz
@@ -80,8 +81,7 @@ fun PatternGame(env: GameEnv) {
     fun readAloud(includeAnswer: Boolean, lead: String = "") {
         readJob?.cancel()
         val items = if (includeAnswer) question.shown + question.answer else question.shown
-        val names = items.joinToString(", ") { it.name }
-        env.say(if (includeAnswer) "$lead $names!" else "$lead $names, 다음은 뭘까요?")
+        env.say(Lines.patternRead(lead, items, withAnswer = includeAnswer))
         readJob = scope.launch {
             delay(if (lead.isEmpty()) 250 else 900)
             items.indices.forEach { i ->
@@ -106,8 +106,8 @@ fun PatternGame(env: GameEnv) {
             if (!missed) firstTry++
             env.play(Sfx.CORRECT)
             celebrate++
-            val word = env.praise()
-            praise = word
+            val word = env.praise(afterMiss = missed)
+            praise = word.substringBefore(' ')
             readAloud(includeAnswer = true, lead = word)
             scope.launch {
                 delay(1600L + (question.shown.size + 1) * 560L)
@@ -125,7 +125,7 @@ fun PatternGame(env: GameEnv) {
             disabled = disabled + choice
             env.play(Sfx.WRONG)
             scope.launch { shakes[choice]?.shake() }
-            readAloud(includeAnswer = false, lead = "음~ 다시 같이 읽어 볼까요?")
+            readAloud(includeAnswer = false, lead = Lines.PATTERN_RETRY)
         }
     }
 

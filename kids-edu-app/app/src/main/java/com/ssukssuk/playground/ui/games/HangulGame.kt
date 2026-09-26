@@ -42,13 +42,14 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import com.ssukssuk.playground.content.Consonant
 import com.ssukssuk.playground.content.HangulContent
-import com.ssukssuk.playground.content.Korean
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.logic.HangulQuiz
 import com.ssukssuk.playground.ui.components.AnswerCard
 import com.ssukssuk.playground.ui.components.AnswerState
 import com.ssukssuk.playground.ui.components.BurstEffect
 import com.ssukssuk.playground.ui.components.GameScaffold
+import com.ssukssuk.playground.ui.components.KidIcons
 import com.ssukssuk.playground.ui.components.PaintStroke
 import com.ssukssuk.playground.ui.components.PillButton
 import com.ssukssuk.playground.ui.components.PraisePop
@@ -80,7 +81,7 @@ fun HangulGame(env: GameEnv) {
 private fun HangulModePicker(env: GameEnv, onPick: (HangulMode) -> Unit) {
     LaunchedEffect(Unit) {
         delay(700)
-        env.say("한글 놀이! 글자 카드를 볼까요, 글자 찾기 놀이를 할까요?")
+        env.say(Lines.HANGUL_MODE)
     }
     GameScaffold(title = env.game.title, color = Color(env.game.colorArgb), onHome = env.onHome) {
         Row(
@@ -91,11 +92,11 @@ private fun HangulModePicker(env: GameEnv, onPick: (HangulMode) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ModeCard("📖", "글자 카드", "자음을 보고 따라 써요", Color(0xFFFFE0B2)) {
-                env.say("글자 카드!")
+                env.say(Lines.HANGUL_MODE_CARDS)
                 onPick(HangulMode.LEARN)
             }
             ModeCard("🎯", "글자 찾기", "첫소리가 같은 그림을 찾아요", Color(0xFFC8E6C9)) {
-                env.say("글자 찾기!")
+                env.say(Lines.HANGUL_MODE_QUIZ)
                 onPick(HangulMode.QUIZ)
             }
         }
@@ -138,14 +139,14 @@ private fun HangulLearn(env: GameEnv) {
     val letterScale = remember { Animatable(0.4f) }
     val strokeWidth = with(LocalDensity.current) { 18.dp.toPx() }
 
-    fun speakCard() = env.say("${consonant.name}! ${consonant.word}, ${consonant.name}.")
+    fun speakCard() = env.say(Lines.consonantCard(consonant))
 
     LaunchedEffect(index) {
         letterScale.snapTo(0.4f)
         launch { letterScale.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessLow)) }
         delay(if (index == 0) 700 else 250)
         if (index == 0) {
-            env.say("${consonant.name}! ${consonant.word}, ${consonant.name}. 손가락으로 글자를 따라 써 볼까요?")
+            env.say("${Lines.consonantCard(consonant)} ${Lines.HANGUL_TRACE}")
         } else {
             speakCard()
         }
@@ -202,7 +203,7 @@ private fun HangulLearn(env: GameEnv) {
                         .padding(14.dp),
                 )
                 RoundIconButton(
-                    icon = "🗑️",
+                    icon = KidIcons.trash(KidsColors.Ink),
                     contentDescription = "지우기",
                     onClick = { strokes.clear() },
                     size = 48.dp,
@@ -231,7 +232,7 @@ private fun HangulLearn(env: GameEnv) {
                         }
                         .bouncyClick {
                             env.play(Sfx.STAR)
-                            env.say(consonant.word)
+                            env.say(Lines.word(consonant.word))
                         },
                 )
                 Text(highlightedWord(consonant.word), fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, color = KidsColors.Ink)
@@ -239,11 +240,11 @@ private fun HangulLearn(env: GameEnv) {
                     text = "${consonant.letter}  ${consonant.name}",
                     fontSize = 24.sp,
                     color = KidsColors.InkSoft,
-                    modifier = Modifier.bouncyClick { env.say(consonant.name) },
+                    modifier = Modifier.bouncyClick { env.say(Lines.consonantName(consonant)) },
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RoundIconButton(
-                        icon = "◀",
+                        icon = KidIcons.arrowLeft(KidsColors.Ink),
                         contentDescription = "앞 글자",
                         enabled = index > 0,
                         onClick = {
@@ -259,7 +260,7 @@ private fun HangulLearn(env: GameEnv) {
                     )
                     if (index < letters.lastIndex) {
                         RoundIconButton(
-                            icon = "▶",
+                            icon = KidIcons.arrowRight(KidsColors.Ink),
                             contentDescription = "다음 글자",
                             onClick = {
                                 env.play(Sfx.FLIP)
@@ -302,7 +303,7 @@ private fun HangulQuizPlay(env: GameEnv) {
     val question = questions[index]
     val shakes = remember(index) { question.choices.associate { it.letter to ShakeState() } }
 
-    fun prompt() = env.say("${question.target.name}! ${Korean.euro(question.target.name)} 시작하는 그림을 찾아볼까요?")
+    fun prompt() = env.say(Lines.hangulQuizPrompt(question.target))
 
     LaunchedEffect(index) {
         delay(if (index == 0) 800 else 300)
@@ -316,9 +317,9 @@ private fun HangulQuizPlay(env: GameEnv) {
             if (!missed) firstTry++
             env.play(Sfx.CORRECT)
             burst++
-            val word = env.praise()
-            praise = word
-            env.say("$word ${Korean.eunNeun(choice.word)} ${Korean.euro(question.target.name)} 시작해요!")
+            val word = env.praise(afterMiss = missed)
+            praise = word.substringBefore(' ')
+            env.say(Lines.hangulQuizCorrect(word, question.target, choice))
             scope.launch {
                 delay(2600)
                 if (index + 1 < questions.size) {
@@ -334,7 +335,7 @@ private fun HangulQuizPlay(env: GameEnv) {
             missed = true
             disabled = disabled + choice.letter
             env.play(Sfx.WRONG)
-            env.say("${Korean.eunNeun(choice.word)} ${Korean.euro(choice.name)} 시작해요. 다시 찾아볼까요?")
+            env.say(Lines.hangulQuizWrong(choice))
             scope.launch { shakes[choice.letter]?.shake() }
         }
     }
@@ -361,7 +362,7 @@ private fun HangulQuizPlay(env: GameEnv) {
                     .fillMaxHeight(0.9f)
                     .shadow(8.dp, RoundedCornerShape(32.dp))
                     .background(Color.White, RoundedCornerShape(32.dp))
-                    .bouncyClick { env.say(question.target.name) },
+                    .bouncyClick { env.say(Lines.consonantName(question.target)) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -392,6 +393,7 @@ private fun HangulQuizPlay(env: GameEnv) {
                     val state = when {
                         solved && choice == question.target -> AnswerState.Correct
                         choice.letter in disabled || solved -> AnswerState.Dimmed
+                        disabled.size >= 2 && choice == question.target -> AnswerState.Hint
                         else -> AnswerState.Normal
                     }
                     AnswerCard(

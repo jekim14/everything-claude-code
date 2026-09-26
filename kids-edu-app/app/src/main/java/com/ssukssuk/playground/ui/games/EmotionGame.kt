@@ -1,6 +1,8 @@
 package com.ssukssuk.playground.ui.games
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -10,6 +12,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssukssuk.playground.content.Emotion
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.logic.EmotionQuiz
 import com.ssukssuk.playground.ui.components.AnswerCard
@@ -71,18 +78,23 @@ import kotlin.math.sin
 @Composable
 fun EmotionGame(env: GameEnv) {
     val difficulty = env.difficulty
-    val questions = remember { EmotionQuiz.generate(env.random, difficulty.questionsPerRound, difficulty.emotionChoices) }
+    val questions = remember {
+        EmotionQuiz.generate(env.random, difficulty.questionsPerRound, difficulty.emotionChoices, difficulty.stage)
+    }
     var index by remember { mutableIntStateOf(0) }
     var firstTry by remember { mutableIntStateOf(0) }
     var missed by remember { mutableStateOf(false) }
     var solved by remember { mutableStateOf(false) }
     var disabled by remember { mutableStateOf(emptySet<Emotion>()) }
+    /** "그럴 수도 있어"로 받아 준 다른 감정 */
+    var accepted by remember { mutableStateOf<Emotion?>(null) }
+    var breathing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val question = questions[index]
     val situation = question.situation
     val shakes = remember(index) { question.choices.associateWith { ShakeState() } }
 
-    fun prompt() = env.say("${situation.text} 친구의 기분은 어떨까요?")
+    fun prompt() = env.say(Lines.emotionPrompt(situation))
 
     LaunchedEffect(index) {
         delay(if (index == 0) 800 else 300)
@@ -91,17 +103,28 @@ fun EmotionGame(env: GameEnv) {
 
     fun choose(emotion: Emotion) {
         if (solved || emotion in disabled) return
-        if (emotion == situation.emotion) {
-            solved = true
-            if (!missed) firstTry++
-            env.play(Sfx.CORRECT)
-            env.say("${env.praise()} ${emotion.adjective} 마음이 들어요. ${situation.tip}")
-        } else {
-            missed = true
-            disabled = disabled + emotion
-            env.play(Sfx.WRONG)
-            env.say("${emotion.label}? 그렇게 느낄 수도 있어요. 다른 마음도 골라 볼까요?")
-            scope.launch { shakes[emotion]?.shake() }
+        when (emotion) {
+            situation.emotion -> {
+                solved = true
+                if (!missed) firstTry++
+                env.play(Sfx.CORRECT)
+                env.say(Lines.emotionCorrect(env.praise(afterMiss = missed), emotion, situation))
+            }
+            in situation.alsoOk -> {
+                // 감정에는 정답이 하나만 있지 않습니다. 그럴 법한 마음은 맞힌 것으로 인정합니다.
+                solved = true
+                accepted = emotion
+                if (!missed) firstTry++
+                env.play(Sfx.CORRECT)
+                env.say(Lines.emotionAlsoOk(emotion, situation))
+            }
+            else -> {
+                missed = true
+                disabled = disabled + emotion
+                env.play(Sfx.WRONG)
+                env.say(Lines.emotionWrong(emotion))
+                scope.launch { shakes[emotion]?.shake() }
+            }
         }
     }
 
@@ -110,6 +133,7 @@ fun EmotionGame(env: GameEnv) {
             index++
             solved = false
             missed = false
+            accepted = null
             disabled = emptySet()
         } else {
             env.complete(firstTry, questions.size)
@@ -173,12 +197,24 @@ fun EmotionGame(env: GameEnv) {
                                 .padding(10.dp),
                         )
                         Spacer(Modifier.height(8.dp))
-                        PillButton(
-                            text = if (index + 1 < questions.size) "다음" else "끝!",
-                            icon = "▶",
-                            fontSize = 18.sp,
-                            onClick = ::next,
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (situation.emotion == Emotion.ANGRY || situation.emotion == Emotion.SCARED) {
+                                PillButton(
+                                    text = "거북이 숨쉬기",
+                                    icon = "🐢",
+                                    fontSize = 17.sp,
+                                    color = Color(0xFFD6F3EF),
+                                    shadow = Color(0xFF9FD9D1),
+                                    contentColor = KidsColors.Ink,
+                                    onClick = { breathing = true },
+                                )
+                            }
+                            PillButton(
+                                text = if (index + 1 < questions.size) "다음" else "끝!",
+                                fontSize = 18.sp,
+                                onClick = ::next,
+                            )
+                        }
                     }
                 }
             }
@@ -191,7 +227,8 @@ fun EmotionGame(env: GameEnv) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         rowChoices.forEach { emotion ->
                             val state = when {
-                                solved && emotion == situation.emotion -> AnswerState.Correct
+                                solved && emotion == (accepted ?: situation.emotion) -> AnswerState.Correct
+                                solved && accepted != null && emotion == situation.emotion -> AnswerState.Hint
                                 emotion in disabled || solved -> AnswerState.Dimmed
                                 else -> AnswerState.Normal
                             }
@@ -212,6 +249,53 @@ fun EmotionGame(env: GameEnv) {
                     }
                 }
             }
+        }
+        if (breathing) TurtleBreathing(env) { breathing = false }
+    }
+}
+
+/**
+ * 거북이 숨쉬기: 원이 커질 때 들이마시고, 작아질 때 내쉽니다(4초씩 세 번).
+ * 화나거나 무서운 마음을 가라앉히는 방법을 몸으로 연습합니다.
+ */
+@Composable
+private fun TurtleBreathing(env: GameEnv, onDone: () -> Unit) {
+    val breath = remember { Animatable(0.45f) }
+    var inhale by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        env.say(Lines.BREATHE_INVITE)
+        delay(2200)
+        repeat(3) {
+            inhale = true
+            env.say(Lines.BREATHE_IN)
+            breath.animateTo(1f, tween(4000, easing = FastOutSlowInEasing))
+            inhale = false
+            env.say(Lines.BREATHE_OUT)
+            breath.animateTo(0.45f, tween(4000, easing = FastOutSlowInEasing))
+        }
+        env.say(Lines.BREATHE_DONE)
+        delay(1800)
+        onDone()
+    }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xE6FFF8EC))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(260.dp)
+                .graphicsLayer {
+                    scaleX = breath.value
+                    scaleY = breath.value
+                }
+                .background(Color(0xFF9FD9D1), CircleShape),
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("🐢", fontSize = 64.sp)
+            Text(if (inhale) "들이마시고…" else "후~ 내쉬어요", fontSize = 28.sp, color = KidsColors.Ink)
         }
     }
 }

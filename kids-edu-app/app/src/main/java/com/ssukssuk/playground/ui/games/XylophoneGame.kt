@@ -47,6 +47,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.Songs
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.components.GameScaffold
@@ -105,7 +106,7 @@ fun XylophoneGame(env: GameEnv) {
 
     LaunchedEffect(Unit) {
         delay(800)
-        env.say("실로폰을 톡톡 쳐 봐요! 노래를 고르면 반짝이는 막대를 따라 칠 수 있어요.")
+        env.say(Lines.XYLO_INTRO)
     }
     LaunchedEffect(Unit) {
         val start = withFrameNanos { it }
@@ -126,11 +127,11 @@ fun XylophoneGame(env: GameEnv) {
             position++
             if (position == current.size) {
                 finished = true
-                val title = Songs.all[songIndex].title
+                val song = Songs.all[songIndex]
                 scope.launch {
                     delay(700)
                     env.play(Sfx.CHEER)
-                    env.say("와! $title 연주를 끝까지 했어요!")
+                    env.say(Lines.xyloSongDone(song))
                     delay(1800)
                     env.complete()
                 }
@@ -143,9 +144,9 @@ fun XylophoneGame(env: GameEnv) {
         songIndex = index
         position = 0
         if (index < 0) {
-            env.say("자유롭게 연주해 봐요!")
+            env.say(Lines.XYLO_FREE)
         } else {
-            env.say("${Songs.all[index].title}! 반짝이는 막대를 따라 쳐 봐요.")
+            env.say(Lines.xyloSong(Songs.all[index]))
         }
     }
 
@@ -168,7 +169,7 @@ fun XylophoneGame(env: GameEnv) {
                     PillButton(text = "다 했어요", icon = "✅", fontSize = 16.sp, onClick = {
                         if (!finished) {
                             finished = true
-                            env.say("멋진 연주였어요!")
+                            env.say(Lines.XYLO_DONE)
                             scope.launch {
                                 delay(1200)
                                 env.complete()

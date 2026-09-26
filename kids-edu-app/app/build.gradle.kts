@@ -14,8 +14,8 @@ android {
         applicationId = "com.ssukssuk.playground"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,10 +40,22 @@ android {
         compose = true
     }
 
+    // 미리 녹음한 음성 파일은 압축하지 않아야 MediaPlayer 가 바로 열 수 있습니다.
+    androidResources {
+        noCompress += "mp3"
+    }
+
     lint {
         abortOnError = true
         warningsAsErrors = false
     }
+}
+
+// 음성 문장 목록(voice/lines.txt)이 코드와 같은지 단위 테스트에서 확인합니다.
+// 문장을 바꿨다면: ./gradlew :app:testDebugUnitTest --tests '*VoiceScriptTest*' -PupdateVoiceLines=true
+tasks.withType<Test>().configureEach {
+    systemProperty("voiceLinesFile", rootProject.file("voice/lines.txt").absolutePath)
+    systemProperty("updateVoiceLines", providers.gradleProperty("updateVoiceLines").getOrElse("false"))
 }
 
 kotlin {

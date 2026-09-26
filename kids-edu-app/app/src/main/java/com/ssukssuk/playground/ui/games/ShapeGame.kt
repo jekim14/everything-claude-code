@@ -47,13 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.zIndex
-import com.ssukssuk.playground.content.Korean
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.content.Palette
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.components.BurstEffect
 import com.ssukssuk.playground.ui.components.GameScaffold
 import com.ssukssuk.playground.ui.components.PraisePop
-import com.ssukssuk.playground.ui.components.ShapeKind
+import com.ssukssuk.playground.content.ShapeKind
 import com.ssukssuk.playground.ui.components.rememberPulse
 import com.ssukssuk.playground.ui.components.shapePath
 import com.ssukssuk.playground.ui.theme.KidsColors
@@ -89,7 +89,7 @@ fun ShapeGame(env: GameEnv) {
     var slotRadius by remember { mutableStateOf(1f) }
     val roundDone = placed.size == round.slots.size
 
-    fun prompt() = env.say("모양 조각을 손가락으로 끌어서 같은 모양 자리에 쏙 넣어 줘요!")
+    fun prompt() = env.say(Lines.SHAPE_PROMPT)
 
     LaunchedEffect(roundIndex) {
         delay(if (roundIndex == 0) 800 else 300)
@@ -106,9 +106,9 @@ fun ShapeGame(env: GameEnv) {
             env.play(Sfx.CORRECT)
             if (placed.size == round.slots.size) {
                 celebrate++
-                val word = env.praise()
-                praise = word
-                env.say("$word 모두 제자리를 찾았어요!")
+                val word = env.praise(afterMiss = missed.isNotEmpty())
+                praise = word.substringBefore(' ')
+                env.say(Lines.shapeAllDone(word))
                 scope.launch {
                     delay(2200)
                     if (roundIndex + 1 < rounds.size) {
@@ -118,7 +118,7 @@ fun ShapeGame(env: GameEnv) {
                     }
                 }
             } else {
-                env.say("${kind.label}! 딱 맞아요!")
+                env.say(Lines.shapeFit(kind))
             }
             return true
         }
@@ -128,7 +128,7 @@ fun ShapeGame(env: GameEnv) {
         if (wrongSlot != null) {
             if (kind !in missed) missed += kind
             env.play(Sfx.WRONG)
-            env.say("${Korean.eunNeun(kind.label)} 모양이 달라요. ${kind.label} 자리를 찾아볼까요?")
+            env.say(Lines.shapeWrong(kind))
         }
         return false
     }
@@ -180,7 +180,7 @@ fun ShapeGame(env: GameEnv) {
                                 slotCenter = slotCenters[kind],
                                 onPick = {
                                     env.play(Sfx.TAP)
-                                    env.say(kind.label)
+                                    env.say(Lines.shapeName(kind))
                                 },
                                 onDrop = { center -> drop(kind, center) },
                             )

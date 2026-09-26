@@ -42,6 +42,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssukssuk.playground.content.Lines
 import com.ssukssuk.playground.core.Sfx
 import com.ssukssuk.playground.ui.components.GameScaffold
 import com.ssukssuk.playground.ui.components.PaintStroke
@@ -92,7 +93,7 @@ fun DrawingGame(env: GameEnv) {
 
     LaunchedEffect(Unit) {
         delay(800)
-        env.say("손가락으로 마음껏 그려 봐요! 왼쪽 동그라미를 누르면 색깔이 바뀌어요.")
+        env.say(Lines.DRAW_INTRO)
     }
 
     fun startStroke(position: Offset): PaintStroke? {
@@ -137,11 +138,11 @@ fun DrawingGame(env: GameEnv) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ToolDot("🌈", selected = tool == Tool.RAINBOW, label = "무지개 붓") {
                         tool = Tool.RAINBOW
-                        env.say("무지개 붓!")
+                        env.say(Lines.DRAW_RAINBOW)
                     }
                     ToolDot("⭐", selected = tool == Tool.STAMP, label = "도장") {
                         tool = Tool.STAMP
-                        env.say("도장을 콕콕 찍어 봐요!")
+                        env.say(Lines.DRAW_STAMP)
                     }
                 }
             }
@@ -164,7 +165,7 @@ fun DrawingGame(env: GameEnv) {
                         }
                         ToolDot("⬜", selected = tool == Tool.ERASER, label = "지우개", size = 44.dp) {
                             tool = Tool.ERASER
-                            env.say("지우개!")
+                            env.say(Lines.DRAW_ERASER)
                         }
                     }
                     Spacer(Modifier.weight(1f))
@@ -182,10 +183,10 @@ fun DrawingGame(env: GameEnv) {
                         onClick = {
                             if (finishing) return@PillButton
                             if (items.isEmpty()) {
-                                env.say("먼저 그림을 그려 볼까요?")
+                                env.say(Lines.DRAW_EMPTY)
                             } else {
                                 finishing = true
-                                env.say("멋진 그림이에요! 무엇을 그렸는지 이야기해 줄래요?")
+                                env.say(Lines.DRAW_DONE)
                                 scope.launch {
                                     delay(2500)
                                     env.complete()

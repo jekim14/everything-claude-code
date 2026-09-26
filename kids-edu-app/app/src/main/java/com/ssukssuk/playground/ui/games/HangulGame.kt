@@ -108,8 +108,8 @@ private fun ModeCard(icon: String, title: String, subtitle: String, color: Color
     Column(
         modifier = Modifier
             .graphicsLayer {
-                scaleX = pulse
-                scaleY = pulse
+                scaleX = pulse.value
+                scaleY = pulse.value
             }
             .shadow(10.dp, RoundedCornerShape(32.dp))
             .background(color, RoundedCornerShape(32.dp))
@@ -226,8 +226,8 @@ private fun HangulLearn(env: GameEnv) {
                     fontSize = 92.sp,
                     modifier = Modifier
                         .graphicsLayer {
-                            translationY = bob * 8.dp.toPx()
-                            rotationZ = bob * 5f
+                            translationY = bob.value * 8.dp.toPx()
+                            rotationZ = bob.value * 5f
                         }
                         .bouncyClick {
                             env.play(Sfx.STAR)
@@ -370,8 +370,8 @@ private fun HangulQuizPlay(env: GameEnv) {
                     fontWeight = FontWeight.ExtraBold,
                     color = KidsColors.Accent,
                     modifier = Modifier.graphicsLayer {
-                        scaleX = pulse
-                        scaleY = pulse
+                        scaleX = pulse.value
+                        scaleY = pulse.value
                     },
                 )
                 Text(

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,7 +45,7 @@ fun RestScreen(onParent: () -> Unit) {
         services.speaker.speak("쑥쑥이도 잠깐 쉬어요. 눈을 감고 기지개를 쭉 켜 볼까요? 다음에 또 같이 놀아요!")
     }
     val transition = rememberInfiniteTransition(label = "zzz")
-    val t by transition.animateFloat(
+    val time = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing)),
@@ -65,7 +64,6 @@ fun RestScreen(onParent: () -> Unit) {
             Box(Modifier.size(width = 240.dp, height = 280.dp)) {
                 Mascot(Modifier.fillMaxSize(), mood = MascotMood.SLEEPY, action = MascotAction.SLEEP)
                 repeat(3) { i ->
-                    val p = (t + i / 3f) % 1f
                     Text(
                         text = "Z",
                         fontSize = (20 + i * 8).sp,
@@ -74,6 +72,7 @@ fun RestScreen(onParent: () -> Unit) {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .graphicsLayer {
+                                val p = (time.value + i / 3f) % 1f
                                 translationX = -30.dp.toPx() + p * 30.dp.toPx()
                                 translationY = 80.dp.toPx() - p * 90.dp.toPx()
                                 alpha = 1f - p

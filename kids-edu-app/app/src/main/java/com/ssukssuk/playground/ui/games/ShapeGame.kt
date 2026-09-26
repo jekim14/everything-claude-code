@@ -205,7 +205,7 @@ private fun ShapeSlot(kind: ShapeKind, size: Dp, filled: Boolean, onPositioned: 
                 onPositioned(bounds.center, bounds.width / 2f)
             }
             .graphicsLayer {
-                val s = if (filled) 1f else pulse
+                val s = if (filled) 1f else pulse.value
                 scaleX = s
                 scaleY = s
             }

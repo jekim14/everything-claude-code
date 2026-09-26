@@ -109,7 +109,7 @@ private fun AgeButton(age: Int, color: Color, highlighted: Boolean, onClick: () 
     Column(
         modifier = Modifier
             .graphicsLayer {
-                val s = if (highlighted) 1.12f else pulse
+                val s = if (highlighted) 1.12f else pulse.value
                 scaleX = s
                 scaleY = s
             }

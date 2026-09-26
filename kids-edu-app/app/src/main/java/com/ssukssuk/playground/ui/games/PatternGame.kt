@@ -241,7 +241,7 @@ private fun MysterySlot(size: Dp, answer: String?, hopping: Boolean) {
         modifier = Modifier
             .size(size)
             .graphicsLayer {
-                val s = if (answer == null) pulse else appear.value
+                val s = if (answer == null) pulse.value else appear.value
                 scaleX = s
                 scaleY = s
                 translationY = -lift * size.toPx() * 0.3f

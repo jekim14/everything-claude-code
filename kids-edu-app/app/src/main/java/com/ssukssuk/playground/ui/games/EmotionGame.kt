@@ -148,8 +148,8 @@ fun EmotionGame(env: GameEnv) {
                     text = situation.emoji,
                     fontSize = if (solved) 48.sp else 76.sp,
                     modifier = Modifier.graphicsLayer {
-                        translationY = bob * 6.dp.toPx()
-                        rotationZ = bob * 4f
+                        translationY = bob.value * 6.dp.toPx()
+                        rotationZ = bob.value * 4f
                     },
                 )
                 Text(

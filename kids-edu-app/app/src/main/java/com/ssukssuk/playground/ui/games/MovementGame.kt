@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -228,9 +229,13 @@ fun MovementGame(env: GameEnv) {
                             )
                         }
                     }
+                    // 링은 그리기 단계에서, 남은 초는 정수가 바뀔 때만 다시 구성합니다.
+                    val secondsLeft by remember(move) {
+                        derivedStateOf { (move.seconds - elapsed).coerceAtLeast(0f).toInt() + 1 }
+                    }
                     CountdownRing(
-                        progress = (elapsed / move.seconds).coerceIn(0f, 1f),
-                        secondsLeft = (move.seconds - elapsed).coerceAtLeast(0f),
+                        progress = { (elapsed / move.seconds).coerceIn(0f, 1f) },
+                        secondsLeft = secondsLeft,
                         done = cheering,
                     )
                     if (!cheering) {
@@ -249,7 +254,7 @@ fun MovementGame(env: GameEnv) {
 }
 
 @Composable
-private fun CountdownRing(progress: Float, secondsLeft: Float, done: Boolean) {
+private fun CountdownRing(progress: () -> Float, secondsLeft: Int, done: Boolean) {
     Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val stroke = 10.dp.toPx()
@@ -259,7 +264,7 @@ private fun CountdownRing(progress: Float, secondsLeft: Float, done: Boolean) {
             drawArc(
                 KidsColors.Leaf,
                 -90f,
-                360f * progress,
+                360f * progress(),
                 false,
                 topLeft = Offset(inset, inset),
                 size = arcSize,
@@ -267,7 +272,7 @@ private fun CountdownRing(progress: Float, secondsLeft: Float, done: Boolean) {
             )
         }
         Text(
-            text = if (done) "⭐" else "${secondsLeft.toInt() + 1}",
+            text = if (done) "⭐" else "$secondsLeft",
             fontSize = 32.sp,
             fontWeight = FontWeight.ExtraBold,
             color = KidsColors.Ink,

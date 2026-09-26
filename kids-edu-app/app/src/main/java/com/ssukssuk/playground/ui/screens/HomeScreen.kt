@@ -181,7 +181,7 @@ private fun GameTile(game: Game, index: Int, size: Dp, onClick: () -> Unit) {
             .graphicsLayer {
                 scaleX = appear.value
                 scaleY = appear.value
-                translationY = bob * 3.dp.toPx()
+                translationY = bob.value * 3.dp.toPx()
             }
             .shadow(8.dp, shape)
             .background(
@@ -206,7 +206,7 @@ private fun GameTile(game: Game, index: Int, size: Dp, onClick: () -> Unit) {
                 fontSize = (size.value * 0.36f).sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = KidsColors.Ink,
-                modifier = Modifier.graphicsLayer { rotationZ = bob * 4f },
+                modifier = Modifier.graphicsLayer { rotationZ = bob.value * 4f },
             )
             Text(
                 text = game.title,

@@ -44,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -131,30 +133,32 @@ fun Modifier.shake(state: ShakeState): Modifier = graphicsLayer {
     translationX = state.offset.value * density
 }
 
-/** 둥실둥실 떠 있는 값 (-1..1). [phase]로 여러 개가 서로 다르게 움직이게 합니다. */
+/**
+ * 둥실둥실 떠 있는 값 (-1..1). [phase]로 여러 개가 서로 다르게 움직이게 합니다.
+ * 매 프레임 다시 구성하지 않도록 graphicsLayer/그리기 단계에서 `.value`를 읽으세요.
+ */
 @Composable
-fun rememberBob(periodMillis: Int = 1800, phase: Float = 0f): Float {
+fun rememberBob(periodMillis: Int = 1800, phase: Float = 0f): State<Float> {
     val transition = rememberInfiniteTransition(label = "bob")
-    val t by transition.animateFloat(
+    val t = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(periodMillis, easing = LinearEasing)),
         label = "bobValue",
     )
-    return sin((t + phase) * 2f * PI.toFloat())
+    return remember(t, phase) { derivedStateOf { sin((t.value + phase) * 2f * PI.toFloat()) } }
 }
 
-/** 콩닥콩닥 커졌다 작아지는 배율 */
+/** 콩닥콩닥 커졌다 작아지는 배율. graphicsLayer 안에서 `.value`를 읽으세요. */
 @Composable
-fun rememberPulse(min: Float = 0.94f, max: Float = 1.06f, periodMillis: Int = 900): Float {
+fun rememberPulse(min: Float = 0.94f, max: Float = 1.06f, periodMillis: Int = 900): State<Float> {
     val transition = rememberInfiniteTransition(label = "pulse")
-    val scale by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = min,
         targetValue = max,
         animationSpec = infiniteRepeatable(tween(periodMillis, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "pulseValue",
     )
-    return scale
 }
 
 @Composable

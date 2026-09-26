@@ -36,7 +36,11 @@ class ScreenshotTour {
             }
 
             shot("00_onboarding")
-            go { it.appState.chooseAge(5) }
+            go {
+                it.appState.chooseAge(5)
+                // 소프트웨어 렌더링 에뮬레이터는 느려서 캡처 도중 쉬는 시간이 되지 않도록 알림을 끕니다.
+                it.appState.updateSettings(it.appState.settings.copy(restMinutes = 0))
+            }
             shot("01_home", waitMillis = 3500)
             Game.entries.forEachIndexed { i, game ->
                 go { it.appState.navigate(Screen.Play(game)) }
@@ -60,7 +64,6 @@ class ScreenshotTour {
 
     private fun shot(name: String, waitMillis: Long = 2500) {
         Thread.sleep(waitMillis)
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         val screen = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             ?: error("screenshot failed: $name")
         val width = 1200

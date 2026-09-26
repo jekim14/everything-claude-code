@@ -2,7 +2,7 @@ package com.ssukssuk.playground
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -11,27 +11,24 @@ import androidx.test.runner.lifecycle.Stage
 import com.ssukssuk.playground.core.Game
 import com.ssukssuk.playground.ui.GatePurpose
 import com.ssukssuk.playground.ui.Screen
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * 실제 기기(에뮬레이터)에서 모든 화면을 차례로 띄워 캡처합니다.
  * 각 화면이 오류 없이 그려지는지 확인하는 스모크 테스트이기도 합니다.
- * 캡처는 앱 내부 저장소 files/screenshots 에 JPEG로 저장됩니다.
+ * 캡처는 기기의 /data/local/tmp/ssukssuk-screens 에 PNG로 저장됩니다.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTour {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val outDir = File(context.filesDir, "screenshots")
 
     @Test
     fun captureEveryScreen() {
         context.getSharedPreferences("ssukssuk_playground", Context.MODE_PRIVATE).edit().clear().commit()
-        outDir.deleteRecursively()
-        outDir.mkdirs()
+        shell("rm -rf $DEVICE_DIR")
+        shell("mkdir -p $DEVICE_DIR")
 
         // 애니메이션이 쉬지 않고 도는 앱이라 '메인 스레드가 한가해질 때'를 기다리는
         // ActivityScenario 대신, 액티비티를 직접 띄우고 메인 스레드에서 바로 실행합니다.
@@ -68,7 +65,6 @@ class ScreenshotTour {
         go { it.appState.navigate(Screen.Play(Game.MEMORY)) }
         shot("16_memory_age4", waitMillis = 4000)
         go { it.finish() }
-        assertTrue((outDir.list()?.size ?: 0) >= 17)
     }
 
     private fun awaitResumedActivity(): MainActivity {
@@ -86,18 +82,20 @@ class ScreenshotTour {
         error("MainActivity가 화면에 나타나지 않았습니다.")
     }
 
+    /** 셸의 screencap으로 화면을 저장합니다. 크기 조정은 CI 호스트에서 합니다. */
     private fun shot(name: String, waitMillis: Long = 2500) {
         Thread.sleep(waitMillis)
-        // 화면 회전 중에는 캡처가 null일 수 있어 잠시 뒤 다시 시도합니다.
-        var screen: Bitmap? = null
-        for (attempt in 1..20) {
-            screen = instrumentation.uiAutomation.takeScreenshot()
-            if (screen != null) break
-            Thread.sleep(500)
+        shell("screencap -p $DEVICE_DIR/$name.png")
+    }
+
+    /** 명령이 끝날 때까지 기다립니다. */
+    private fun shell(command: String) {
+        ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use {
+            it.readBytes()
         }
-        val captured = screen ?: error("screenshot failed: $name")
-        val width = 1200
-        val scaled = Bitmap.createScaledBitmap(captured, width, captured.height * width / captured.width, true)
-        File(outDir, "$name.jpg").outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 82, it) }
+    }
+
+    private companion object {
+        const val DEVICE_DIR = "/data/local/tmp/ssukssuk-screens"
     }
 }

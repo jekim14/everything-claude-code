@@ -21,9 +21,28 @@ if grep -qE "FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed" instrument.log;
   exit 1
 fi
 
-rm -rf "$OUT"
+rm -rf "$OUT" raw-screens
 mkdir -p "$OUT"
-for f in $(adb shell run-as "$PKG" ls files/screenshots | tr -d '\r'); do
-  adb exec-out run-as "$PKG" cat "files/screenshots/$f" > "$OUT/$f"
-done
+adb pull /data/local/tmp/ssukssuk-screens raw-screens
+count=$(ls raw-screens/*.png | wc -l)
+echo "캡처 $count 장"
+if [ "$count" -lt 17 ]; then
+  echo "::error::캡처가 부족합니다 ($count/17)"
+  exit 1
+fi
+
+# 저장소 용량을 줄이기 위해 가로 1200px JPEG로 변환합니다.
+python3 -m venv /tmp/capture-venv
+/tmp/capture-venv/bin/pip install --quiet pillow
+/tmp/capture-venv/bin/python - "$OUT" <<'PY'
+import glob, os, sys
+from PIL import Image
+out = sys.argv[1]
+for path in sorted(glob.glob("raw-screens/*.png")):
+    image = Image.open(path).convert("RGB")
+    width = 1200
+    height = round(image.height * width / image.width)
+    name = os.path.splitext(os.path.basename(path))[0] + ".jpg"
+    image.resize((width, height), Image.LANCZOS).save(os.path.join(out, name), quality=82)
+PY
 ls -la "$OUT"

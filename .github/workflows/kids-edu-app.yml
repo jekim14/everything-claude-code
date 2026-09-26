@@ -1,0 +1,65 @@
+name: 쑥쑥 놀이터 Android 빌드
+
+on:
+  push:
+    paths:
+      - "kids-edu-app/**"
+      - ".github/workflows/kids-edu-app.yml"
+  pull_request:
+    paths:
+      - "kids-edu-app/**"
+      - ".github/workflows/kids-edu-app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kids-edu-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 테스트 · Lint · APK 빌드
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kids-edu-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17 설정
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle 설정
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 단위 테스트
+        run: ./gradlew --stacktrace testDebugUnitTest
+
+      - name: Lint
+        run: ./gradlew lintDebug
+
+      - name: 디버그 APK 빌드
+        run: ./gradlew assembleDebug
+
+      - name: APK 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssukssuk-playground-debug-apk
+          path: kids-edu-app/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: 테스트·Lint 리포트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssukssuk-playground-reports
+          path: |
+            kids-edu-app/app/build/reports/
+            kids-edu-app/app/build/test-results/
+          if-no-files-found: ignore

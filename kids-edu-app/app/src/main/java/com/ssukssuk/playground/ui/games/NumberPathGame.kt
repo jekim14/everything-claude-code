@@ -415,7 +415,8 @@ private fun DieCard(value: Int, canRoll: Boolean, size: Dp, onClick: () -> Unit)
                 else -> emptyList()
             }
             spots.forEach { (fx, fy) -> drawCircle(KidsColors.Ink, dot, Offset(r * fx, r * fy)) }
-            if (value == 0) drawCircle(KidsColors.InkSoft.copy(alpha = 0.3f), dot, Offset(r * 0.5f, r * 0.5f))
         }
+        // 아직 굴리지 않았으면 점 대신 물음표를 보여 줍니다(점 하나는 1로 보이므로).
+        if (value == 0) Text("?", fontSize = (size.value * 0.34f).sp, color = KidsColors.InkSoft)
     }
 }

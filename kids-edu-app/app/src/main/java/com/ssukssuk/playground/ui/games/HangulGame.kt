@@ -48,6 +48,7 @@ import com.ssukssuk.playground.logic.HangulQuiz
 import com.ssukssuk.playground.ui.components.AnswerCard
 import com.ssukssuk.playground.ui.components.AnswerState
 import com.ssukssuk.playground.ui.components.BurstEffect
+import com.ssukssuk.playground.ui.components.ChunkyBox
 import com.ssukssuk.playground.ui.components.GameScaffold
 import com.ssukssuk.playground.ui.components.KidIcons
 import com.ssukssuk.playground.ui.components.PaintStroke
@@ -91,11 +92,11 @@ private fun HangulModePicker(env: GameEnv, onPick: (HangulMode) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ModeCard("📖", "글자 카드", "자음을 보고 따라 써요", Color(0xFFFFE0B2)) {
+            ModeCard("📖", "글자 카드", "자음을 보고 따라 써요", Color(0xFFFFE4DA), Color(0xFFF4B5A2)) {
                 env.say(Lines.HANGUL_MODE_CARDS)
                 onPick(HangulMode.LEARN)
             }
-            ModeCard("🎯", "글자 찾기", "첫소리가 같은 그림을 찾아요", Color(0xFFC8E6C9)) {
+            ModeCard("🎯", "글자 찾기", "첫소리가 같은 그림을 찾아요", Color(0xFFD6F3EF), Color(0xFF9FD9D1)) {
                 env.say(Lines.HANGUL_MODE_QUIZ)
                 onPick(HangulMode.QUIZ)
             }
@@ -104,23 +105,27 @@ private fun HangulModePicker(env: GameEnv, onPick: (HangulMode) -> Unit) {
 }
 
 @Composable
-private fun ModeCard(icon: String, title: String, subtitle: String, color: Color, onClick: () -> Unit) {
-    val pulse = rememberPulse(0.97f, 1.03f, 1300)
-    Column(
-        modifier = Modifier
-            .graphicsLayer {
-                scaleX = pulse.value
-                scaleY = pulse.value
-            }
-            .shadow(10.dp, RoundedCornerShape(32.dp))
-            .background(color, RoundedCornerShape(32.dp))
-            .bouncyClick(onClick = onClick)
-            .padding(horizontal = 36.dp, vertical = 22.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+private fun ModeCard(icon: String, title: String, subtitle: String, color: Color, shadow: Color, onClick: () -> Unit) {
+    val pulse = rememberPulse(0.98f, 1.02f, 1300)
+    ChunkyBox(
+        modifier = Modifier.graphicsLayer {
+            scaleX = pulse.value
+            scaleY = pulse.value
+        },
+        color = color,
+        shadow = shadow,
+        radius = 32.dp,
+        depth = 8.dp,
+        onClick = onClick,
     ) {
-        Text(icon, fontSize = 64.sp)
-        Text(title, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = KidsColors.Ink)
-        Text(subtitle, fontSize = 15.sp, color = KidsColors.InkSoft)
+        Column(
+            modifier = Modifier.padding(horizontal = 36.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(icon, fontSize = 60.sp)
+            Text(title, fontSize = 30.sp, color = KidsColors.Ink)
+            Text(subtitle, fontSize = 16.sp, color = KidsColors.InkSoft)
+        }
     }
 }
 

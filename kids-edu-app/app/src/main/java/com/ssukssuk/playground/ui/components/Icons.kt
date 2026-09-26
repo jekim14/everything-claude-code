@@ -2,6 +2,7 @@ package com.ssukssuk.playground.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -218,8 +219,15 @@ fun GameIcon(game: Game, color: Color, size: Dp, modifier: Modifier = Modifier) 
         VectorIcon(vector, modifier, size)
     } else {
         Box(modifier.size(size).clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
-            val label = if (game == Game.HANGUL) "가" else "ㄱ+ㅏ"
-            Text(label, fontSize = (size.value * if (game == Game.HANGUL) 0.8f else 0.5f).sp, color = color, softWrap = false)
+            if (game == Game.HANGUL) {
+                Text("가", fontSize = (size.value * 0.8f).sp, color = color, softWrap = false)
+            } else {
+                // 자음 + 모음 = 글자: 작은 크기에서도 읽히도록 두 줄로 나눕니다.
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("ㄱ+ㅏ", fontSize = (size.value * 0.36f).sp, color = color, softWrap = false, lineHeight = (size.value * 0.4f).sp)
+                    Text("가", fontSize = (size.value * 0.5f).sp, color = color, softWrap = false, lineHeight = (size.value * 0.52f).sp)
+                }
+            }
         }
     }
 }

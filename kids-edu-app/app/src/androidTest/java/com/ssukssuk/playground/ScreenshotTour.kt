@@ -50,8 +50,9 @@ class ScreenshotTour {
         go {
             // 캡처용 이름은 예시 이름을 씁니다.
             it.appState.finishOnboarding(5, "하늘")
-            // 소프트웨어 렌더링 에뮬레이터는 느려서 캡처 도중 쉬는 시간이 되지 않도록 알림과 하루 제한을 끕니다.
-            it.appState.updateSettings(it.appState.settings.copy(restMinutes = 0, dailyLimitMinutes = 0))
+            // 소프트웨어 렌더링 에뮬레이터는 느려서 캡처 도중 쉬는 시간이 되지 않도록 알림은 끄고,
+            // 홈의 해님 막대가 보이도록 하루 제한은 넉넉하게 둡니다.
+            it.appState.updateSettings(it.appState.settings.copy(restMinutes = 0, dailyLimitMinutes = 90))
         }
         shot("01_home", waitMillis = 3500)
         Game.entries.forEachIndexed { i, game ->

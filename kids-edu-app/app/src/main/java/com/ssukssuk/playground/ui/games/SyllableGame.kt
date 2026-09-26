@@ -174,7 +174,7 @@ fun SyllableGame(env: GameEnv) {
         onReplayVoice = ::prompt,
     ) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            val unit = min(maxHeight / 300f, maxWidth / 560f)
+            val unit = min(maxHeight / 230f, maxWidth / 520f)
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1.5f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -215,7 +215,7 @@ fun SyllableGame(env: GameEnv) {
                         }
                     }
                     Spacer(Modifier.width(12.dp))
-                    TargetCard(target.emoji, target.word, unit, deep, burst, Modifier.weight(1f).fillMaxHeight(0.9f))
+                    TargetCard(target.emoji, target.word, unit, deep, burst, Modifier.weight(0.8f).fillMaxHeight(0.82f))
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(

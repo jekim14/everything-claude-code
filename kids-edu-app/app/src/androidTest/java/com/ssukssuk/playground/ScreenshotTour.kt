@@ -44,7 +44,7 @@ class ScreenshotTour {
             instrumentation.runOnMainSync { action(activity) }
         }
 
-        shot("00_onboarding")
+        shot("00_onboarding", waitMillis = 6000)
         go {
             it.appState.chooseAge(5)
             // 소프트웨어 렌더링 에뮬레이터는 느려서 캡처 도중 쉬는 시간이 되지 않도록 알림을 끕니다.
@@ -88,10 +88,16 @@ class ScreenshotTour {
 
     private fun shot(name: String, waitMillis: Long = 2500) {
         Thread.sleep(waitMillis)
-        val screen = instrumentation.uiAutomation.takeScreenshot()
-            ?: error("screenshot failed: $name")
+        // 화면 회전 중에는 캡처가 null일 수 있어 잠시 뒤 다시 시도합니다.
+        var screen: Bitmap? = null
+        for (attempt in 1..20) {
+            screen = instrumentation.uiAutomation.takeScreenshot()
+            if (screen != null) break
+            Thread.sleep(500)
+        }
+        val captured = screen ?: error("screenshot failed: $name")
         val width = 1200
-        val scaled = Bitmap.createScaledBitmap(screen, width, screen.height * width / screen.width, true)
+        val scaled = Bitmap.createScaledBitmap(captured, width, captured.height * width / captured.width, true)
         File(outDir, "$name.jpg").outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 82, it) }
     }
 }

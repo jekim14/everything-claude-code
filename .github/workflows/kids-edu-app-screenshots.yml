@@ -2,8 +2,8 @@ name: 쑥쑥 놀이터 화면 캡처
 
 # 에뮬레이터에서 앱의 모든 화면을 띄워 캡처하고 kids-edu-app/docs/screenshots 에 커밋합니다.
 # 커밋 메시지에 [screenshots] 가 들어 있거나, Actions 탭에서 수동으로 실행할 때만 동작합니다.
-# 소프트웨어 렌더링 에뮬레이터는 구성에 따라 불안정할 수 있어 두 가지 구성으로 동시에 캡처하고,
-# 성공한 쪽(우선순위: API 34 → API 30)의 결과를 커밋합니다.
+# GPU가 없는 러너에서는 API 34 에뮬레이터가 소프트웨어 렌더링 중 종료되는 일이 잦아
+# 안정적으로 동작하는 API 30 + SwiftShader 구성을 사용합니다.
 on:
   push:
     paths:
@@ -16,21 +16,11 @@ permissions:
   contents: write
 
 jobs:
-  capture:
-    name: 에뮬레이터 화면 캡처 (${{ matrix.name }})
+  screenshots:
+    name: 에뮬레이터 화면 캡처
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[screenshots]')
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: api34
-            api-level: 34
-            gpu: guest
-          - name: api30
-            api-level: 30
-            gpu: swiftshader_indirect
     steps:
       - uses: actions/checkout@v5
 
@@ -56,7 +46,7 @@ jobs:
       - name: 에뮬레이터에서 화면 캡처
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: ${{ matrix.api-level }}
+          api-level: 30
           target: google_apis
           arch: x86_64
           profile: pixel_6
@@ -64,52 +54,26 @@ jobs:
           heap-size: 576M
           cores: 3
           disable-animations: false
-          emulator-options: -no-window -no-snapshot -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -no-snapshot -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: kids-edu-app
           script: bash ../.github/scripts/kids-edu-app-capture.sh
 
       - name: 캡처 업로드
         uses: actions/upload-artifact@v4
         with:
-          name: screens-${{ matrix.name }}
+          name: ssukssuk-playground-screenshots
           path: kids-edu-app/docs/screenshots/
           if-no-files-found: error
 
-  commit:
-    name: 캡처 커밋
-    needs: capture
-    if: always() && needs.capture.result != 'skipped'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: 캡처 내려받기
-        uses: actions/download-artifact@v4
-        with:
-          pattern: screens-*
-          path: downloaded
-
       - name: 캡처 커밋
         run: |
-          src=""
-          for name in api34 api30; do
-            if [ -d "downloaded/screens-$name" ]; then src="downloaded/screens-$name"; break; fi
-          done
-          if [ -z "$src" ]; then
-            echo "::error::성공한 캡처가 없습니다."
-            exit 1
-          fi
-          echo "사용할 캡처: $src"
-          rm -rf kids-edu-app/docs/screenshots
-          mkdir -p kids-edu-app/docs/screenshots
-          cp "$src"/*.jpg kids-edu-app/docs/screenshots/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A kids-edu-app/docs/screenshots
           if git diff --cached --quiet; then
             echo "변경된 캡처가 없습니다."
           else
-            git commit -m "쑥쑥 놀이터 화면 캡처 갱신 (${src#downloaded/screens-})"
+            git commit -m "쑥쑥 놀이터 화면 캡처 갱신"
             git pull --rebase
             git push
           fi

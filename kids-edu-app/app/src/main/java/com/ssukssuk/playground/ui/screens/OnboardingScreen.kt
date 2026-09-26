@@ -97,6 +97,9 @@ fun OnboardingScreen(onChooseAge: (Int) -> Unit) {
                     text = "보호자 안내: 만 나이 기준이에요. 보호자 메뉴에서 언제든 바꿀 수 있어요.",
                     fontSize = 14.sp,
                     color = KidsColors.InkSoft,
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(50))
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
                 )
             }
         }

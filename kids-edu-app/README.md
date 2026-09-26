@@ -10,6 +10,24 @@
 
 ---
 
+## 화면 미리보기
+
+에뮬레이터(가로 휴대폰, 만 5세 설정)에서 자동으로 캡처한 화면입니다. 전체 캡처는 [`docs/screenshots`](docs/screenshots)에 있습니다.
+
+| 홈 | 첫 실행 |
+|---|---|
+| ![홈](docs/screenshots/01_home.jpg) | ![첫 실행](docs/screenshots/00_onboarding.jpg) |
+| **숫자 세기** | **색깔 풍선** |
+| ![숫자 세기](docs/screenshots/03_counting.jpg) | ![색깔 풍선](docs/screenshots/04_balloon.jpg) |
+| **모양 맞추기** | **짝꿍 카드** |
+| ![모양 맞추기](docs/screenshots/05_shapes.jpg) | ![짝꿍 카드](docs/screenshots/06_memory.jpg) |
+| **규칙 찾기** | **기분 친구** |
+| ![규칙 찾기](docs/screenshots/07_pattern.jpg) | ![기분 친구](docs/screenshots/08_emotion.jpg) |
+| **실로폰** | **그림 그리기** |
+| ![실로폰](docs/screenshots/10_xylophone.jpg) | ![그림 그리기](docs/screenshots/09_drawing.jpg) |
+| **보호자·교사 메뉴** | **쉬는 시간** |
+| ![보호자 메뉴](docs/screenshots/14_parent.jpg) | ![쉬는 시간](docs/screenshots/15_rest.jpg) |
+
 ## 놀이 구성과 누리과정 연계
 
 | 놀이 | 누리과정 영역 | 관련 내용 | 만 4세 | 만 5세 |
@@ -107,6 +125,8 @@ kids-edu-app/app/src/main/java/com/ssukssuk/playground/
 
 `core`, `content`, `logic`, `audio`는 Android에 의존하지 않아 JVM 단위 테스트로 검증합니다(`app/src/test`).
 조사 선택(사과**가**/별**이**, 기역**으로**/리을**로**), 고유어 수사(한 개, 두 마리), 문제 생성 규칙, 짝꿍 카드 규칙, 기록 저장, 음 합성 등을 테스트합니다.
+
+`app/src/androidTest`의 `ScreenshotTour`는 실제 기기(에뮬레이터)에서 모든 화면을 차례로 띄우는 스모크 테스트입니다. 커밋 메시지에 `[screenshots]`를 넣거나 Actions 탭에서 **쑥쑥 놀이터 화면 캡처**를 실행하면 `docs/screenshots`의 캡처가 갱신됩니다.
 
 ## 새 놀이 추가하기
 

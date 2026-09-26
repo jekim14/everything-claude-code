@@ -74,7 +74,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "변경된 캡처가 없습니다."
           else
-            git commit -m "쑥쑥 놀이터 화면 캡처 갱신"
+            # 이미지만 바뀐 봇 커밋이 PR 빌드를 다시 일으켜 '승인 필요' 상태로 남지 않도록 CI를 건너뜁니다.
+            # (pull_request 이벤트의 paths 필터는 PR 전체 변경분을 보므로 docs/** 제외만으로는 막히지 않습니다.)
+            git commit -m "쑥쑥 놀이터 화면 캡처 갱신 [skip ci]"
             git pull --rebase
             git push
           fi

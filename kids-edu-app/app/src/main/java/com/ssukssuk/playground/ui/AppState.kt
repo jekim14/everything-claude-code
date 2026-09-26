@@ -128,7 +128,7 @@ class AppState(
         if (restDue && screen == Screen.Home) screen = Screen.Rest
     }
 
-    fun setForeground(foreground: Boolean) {
+    fun updateForeground(foreground: Boolean) {
         if (foreground == isForeground) return
         isForeground = foreground
         if (!foreground) {

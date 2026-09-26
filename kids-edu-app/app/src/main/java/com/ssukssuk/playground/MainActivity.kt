@@ -40,11 +40,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         hideSystemBars()
-        appState.setForeground(true)
+        appState.updateForeground(true)
     }
 
     override fun onPause() {
-        appState.setForeground(false)
+        appState.updateForeground(false)
         super.onPause()
     }
 

@@ -19,7 +19,10 @@ import com.ssukssuk.playground.ui.SsukSsukApp
 class MainActivity : ComponentActivity() {
     private lateinit var speaker: AndroidSpeaker
     private lateinit var sound: AndroidSoundPlayer
-    private lateinit var appState: AppState
+
+    /** 화면 캡처 계측 테스트에서 화면을 바꾸기 위해 모듈 안에 공개합니다. */
+    internal lateinit var appState: AppState
+        private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
